@@ -896,3 +896,44 @@ wrong category.
 > **Coverage is not a goal.** A rule applied to the wrong slot category
 > guarantees failure and looks, in the results table, exactly like a rule that
 > worked.
+
+## 2026-11-16 · v19: the guard prevented harm without producing gain
+
+```
+syntax 24% (unchanged)   rule coverage 47 -> 43
+```
+
+The composition changed - two prompts became hits, the four nominal-slot ones
+fell through to the lexical path - and the total stayed put. **Blocking a wrong
+rule is not the same as handling the case.** Those four need their own
+reordering, not an absence of one.
+
+All four share a shape the existing rules miss:
+
+```
+[subordinate clause]  +  [main clause, verb before subject]
+Omdat het regende  |  bleven wij        -> Omdat het regende wij bleven
+Nadat zij at       |  ging zij naar     -> Nadat zij at zij ging naar
+```
+
+The `final` rule skips them because it requires the second word NOT to be a
+pronoun, and here it is one: the subordinate clause has its own pronoun
+subject. A new rule repairs main-clause inversion after a subordinate clause,
+and coverage goes 43 -> 49 with the four now reordered correctly.
+
+## 2026-11-16 · And I found a regression I had caused myself
+
+```
+Ik heb de brief nog niet  ->  Ik heb [___] de brief niet nog
+```
+
+`nog niet` is a fixed unit meaning *not yet*. The adverbial-ordering fix from
+the previous round put `nog` in the movable set, which split the pair and made
+the tail worse than before I touched it.
+
+> **A fix verified on the cases it targets can still damage the cases it does
+> not.** I checked the three perfect-tense prompts the change was for and never
+> re-checked the rest.
+
+`nog` removed from the movable set, with the reason recorded next to it so it
+does not get added back.

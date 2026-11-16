@@ -58,7 +58,11 @@ TO_INF = "te"
 ADVERBIALS = {"gisteren", "vandaag", "vanmorgen", "vanmiddag", "vanavond",
               "morgen", "straks", "nu", "al", "net", "toen", "later",
               "eerst", "daarna", "vroeg", "laat", "vaak", "soms", "altijd",
-              "nooit", "weer", "nog"}
+              "nooit", "weer"}
+# `nog` is deliberately NOT here. `nog niet` is a fixed unit meaning "not yet",
+# and moving `nog` to the end split it: `de brief nog niet` became
+# `de brief niet nog`. The adverbial fix from the previous round caused that
+# regression and I had not checked for it.
 
 
 def _tail_adverbials_last(tail):
@@ -95,6 +99,26 @@ ADVERB_T = {"echt", "recht", "direct", "vaak", "niet", "wat", "dicht",
             "licht", "zacht", "hard", "goed", "slecht", "juist", "meest"}
 
 
+def fix_main_clause_inversion(w, low):
+    """Subordinate clause, then a main clause with verb before subject.
+
+        Omdat het regende bleven wij ___   ->  Omdat het regende wij bleven ___
+        Nadat zij at ging zij naar ___     ->  Nadat zij at zij ging naar ___
+
+    Four v19 prompts have exactly this shape. The existing `final` rule misses
+    them because it requires the second word NOT to be a pronoun, and here it
+    is one - the subordinate clause has its own pronoun subject.
+
+    Returns the reordered word list, or None when the pattern is absent.
+    """
+    if low[0] not in FRONTED and low[0] not in SUBORDINATORS:
+        return None
+    for j in range(3, len(w)):
+        if low[j] in PRONOUNS and len(low[j - 1]) > 2                 and low[j - 1] not in PRONOUNS                 and low[j - 1] not in DETERMINERS                 and low[j - 1].endswith(("t", "n", "f", "g", "d")):
+            return w[:j - 1] + [w[j], w[j - 1]] + w[j + 1:]
+    return None
+
+
 def slot_is_nominal(text):
     """True when the next word cannot be a verb, from the last word alone."""
     w = _split(text)
@@ -121,7 +145,16 @@ def reorder(text):
     if slot_is_nominal(text):
         if low[0] in FRONTED and len(w) >= 3 and low[2] in PRONOUNS                 and low[1] not in PRONOUNS:
             return ([w[0], w[2], w[1]] + w[3:], [], "final")
+        swapped = fix_main_clause_inversion(w, low)
+        if swapped is not None:
+            return (swapped, [], "final")
         return None
+
+    swapped = fix_main_clause_inversion(w, low)
+    if swapped is not None and low[-1] not in PERFECT_AUX:
+        # the slot stays final; only the main clause's word order is repaired
+        if not any(low[k] in SUBORDINATORS and k > 0 for k in range(len(low))):
+            return (swapped, [], "final")
 
     # R1 - verb-final subordinate clause.
     #   Ik weet dat hij het boek ___   ->  Ik weet dat hij ___ het boek
