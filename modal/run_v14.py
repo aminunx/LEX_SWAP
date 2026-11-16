@@ -285,6 +285,7 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     res = {"lexical": 0, "syntax": 0, "oracle": 0, "lemma": 0}
     rows = []
     dbg = []
+    ranks = []
     DEBUG_IDS = set(range(1, 51))
 
     def same_lemma(a, b):
@@ -351,6 +352,16 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                 best = int(torch.argmax(sc))
                 syn_out = cws[best]
                 syn_hit = syn_out.lower() == exp.lower()
+                # where does the CORRECT answer actually rank?
+                order = torch.argsort(sc, descending=True)
+                rank = None
+                for pos, j in enumerate(order.tolist()):
+                    if cws[j].lower() == exp.lower():
+                        rank = pos + 1
+                        break
+                ranks.append({"id": p["id"], "rank": rank,
+                              "n_cand": len(cids), "expected": exp,
+                              "top1": syn_out})
                 if p["id"] in DEBUG_IDS:
                     order = torch.argsort(sc, descending=True)[:6]
                     te = nl2id.get(exp.lower())
@@ -430,6 +441,19 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     print("  oracle slot (bound)   {:>3}/{}   {:.0%}".format(
         res["oracle"], n, res["oracle"] / n))
     mr = sum(1 for r in rows if r["rule"] != "-")
+    scored = [r for r in ranks if r["rank"] is not None]
+    unreach = [r for r in ranks if r["rank"] is None]
+    for k in (1, 3, 5, 10):
+        hit = sum(1 for r in scored if r["rank"] <= k)
+        print("  correct answer in top-{:<3} {:>3}/{}   {:.0%} of scored slots"
+              .format(k, hit, len(ranks), hit / max(len(ranks), 1)))
+    if unreach:
+        print("  never in the candidate pool: {} -> {}".format(
+            len(unreach), [r["expected"] for r in unreach][:10]))
+    print("  reading: a large gap between top-1 and top-5 means the answer IS")
+    print("  found and outranked - the prompt has several valid fillers, which")
+    print("  is a test-design problem, not a model one. A small gap means the")
+    print("  answer is genuinely not being found, which is a template problem.")
     print("  a reorder rule matched  {:>3}/{}   {:.0%}".format(mr, n, mr / n))
     print("  [diagnostic] same verb stem, wrong inflection counted as a hit:"
           "  {:>3}/{}   {:.0%}".format(res["lemma"], n, res["lemma"] / n))
@@ -475,6 +499,10 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                "syntax_acc": round(res["syntax"] / n, 3),
                "oracle_acc": round(res["oracle"] / n, 3),
                "lemma_diagnostic": round(res["lemma"] / n, 3),
+               "ranks": ranks,
+               "topk": {str(k): sum(1 for r in ranks
+                                    if r["rank"] is not None and r["rank"] <= k)
+                        for k in (1, 3, 5, 10)},
                "reachable": len(reachable), "reachable_frac": round(len(reachable) / n, 3),
                "debug": dbg,
                "weights_unchanged": bool(unchanged), "rows": rows}
