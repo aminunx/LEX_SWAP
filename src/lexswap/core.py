@@ -31,6 +31,7 @@ class SwapTable:
     kept: list[int] = field(default_factory=list)          # left unchanged
     fragments: list[int] = field(default_factory=list)     # sub-word pieces
     collisions: dict[str, list[int]] = field(default_factory=dict)
+    rejected_roundtrip: int = 0
 
     @property
     def stats(self) -> dict:
@@ -41,6 +42,7 @@ class SwapTable:
             "subword_fragments": len(self.fragments),
             "colliding_strings": len(self.collisions),
             "ids_lost_to_collision": n_coll_ids,
+            "rejected_by_roundtrip": self.rejected_roundtrip,
             "vocab_covered": len(self.id2tgt),
         }
 
@@ -68,14 +70,24 @@ def classify(s: str) -> str:
     return "whole_word" if s.startswith(" ") or s[0].isupper() else "fragment"
 
 
-def build_table(tokenizer, translate, n: int = 30_000,
-                batch: int = 64) -> SwapTable:
+def build_table(tokenizer, translate, n: int = 30_000, batch: int = 64,
+                back_translate=None) -> SwapTable:
     """Build the swap table over the first `n` ids.
 
     `translate` takes a list of English words and returns the same number of
     target-language words. It is injected rather than imported so the same code
     can run against a machine-translation model, a bilingual lexicon, or the
     shuffled control.
+
+    `back_translate` is optional round-trip verification, and it is the fix for
+    the largest measured loss in the first Dutch run: 10,198 ids lost because a
+    translation model fed a bare context-free word returns whichever sense is
+    most frequent, and many English words collapse onto one target word.
+
+    With it, each candidate is translated back. A mapping is accepted only if
+    the round trip returns the word we started from. That trades coverage for
+    precision, and `stats` reports both so the trade is visible rather than
+    assumed.
     """
     t = SwapTable()
     todo: list[tuple[int, str, str]] = []   # (id, original, bare word)
@@ -91,10 +103,11 @@ def build_table(tokenizer, translate, n: int = 30_000,
             if kind == "fragment":
                 t.fragments.append(i)
 
+    accepted: list[tuple[int, str, str, str]] = []   # id, orig, src, target
     for k in range(0, len(todo), batch):
         chunk = todo[k:k + batch]
         out = translate([w for _, _, w in chunk])
-        for (i, orig, _), tr in zip(chunk, out):
+        for (i, orig, src), tr in zip(chunk, out):
             tr = (tr or "").strip().split()
             # a one-word source must map to a one-word target, or the word-level
             # codec breaks; multi-word output is dropped and the id is kept
@@ -102,7 +115,25 @@ def build_table(tokenizer, translate, n: int = 30_000,
                 t.id2tgt[i] = orig
                 t.kept.append(i)
                 continue
-            t.id2tgt[i] = (" " if orig.startswith(" ") else "") + tr[0]
+            accepted.append((i, orig, src, tr[0]))
+
+    if back_translate is not None:
+        survivors = []
+        for k in range(0, len(accepted), batch):
+            chunk = accepted[k:k + batch]
+            back = back_translate([tgt for _, _, _, tgt in chunk])
+            for (i, orig, src, tgt), b in zip(chunk, back):
+                b = (b or "").strip().strip(".,!?").lower()
+                if b == src.lower() or b.rstrip("s") == src.lower().rstrip("s"):
+                    survivors.append((i, orig, src, tgt))
+                else:
+                    t.id2tgt[i] = orig
+                    t.kept.append(i)
+                    t.rejected_roundtrip += 1
+        accepted = survivors
+
+    for i, orig, _, tgt in accepted:
+        t.id2tgt[i] = (" " if orig.startswith(" ") else "") + tgt
 
     for i, s in t.id2tgt.items():
         key = s.lstrip(" ").lower()
