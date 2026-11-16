@@ -96,10 +96,17 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         return d.strip() if d else None
     print("  lexicon {} decode ids, {} mid forms".format(len(id2), len(mid)))
 
-    def enc_words(words):
+    def enc_words(words, first=True):
+        """`first=False` for a mid-sentence fragment.
+
+        Index 0 was unconditionally looked up in the sentence-initial table, so
+        the SUFFIX of a reordered template came out capitalised and without a
+        leading space - "I knows that he [reads] The book". The model was being
+        scored on broken English, which is why the oracle arm failed.
+        """
         ids = []
         for k, w in enumerate(words):
-            if k == 0:
+            if k == 0 and first:
                 got = (init.get(w) or init.get(w.lower()) or
                        mid.get(" " + w) or mid.get(" " + w.lower()))
             else:
@@ -214,7 +221,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                 syn_out = dec(generate(enc_words(pre)))
                 syn_hit = exp.lower() in syn_out.lower()
             else:
-                pre_ids, suf_ids = enc_words(pre), enc_words(suf)
+                pre_ids = enc_words(pre, first=True)
+                suf_ids = enc_words(suf, first=False)   # mid-sentence
                 # restrict by the category the slot wants - an unfiltered pool
                 # is dominated by function words and the scorer picks `de`
                 pool = build_candidates(kind, cand_words, limit=n_cand)
@@ -243,6 +251,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                         "reordered_nl": " ".join(pre) + " [___] " + " ".join(suf),
                         "english_prefix": tok.decode(pre_ids),
                         "english_suffix": tok.decode(suf_ids),
+                        "english_full": tok.decode(
+                            pre_ids + [nl2id.get(exp.lower(), 0)] + suf_ids),
                         "expected_token": (tok.decode([te]) if te else None),
                         "expected_in_pool": bool(te in cids),
                         "top": [{"nl": cws[int(j)],
@@ -260,7 +270,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                 distract = [nl2id[w.lower()] for w in pool
                             if w.lower() in nl2id and
                             nl2id[w.lower()] != t_exp][:20]
-                sc = score_slot(enc_words(pre), enc_words(suf),
+                sc = score_slot(enc_words(pre, True),
+                                enc_words(suf, False),
                                 [t_exp] + distract)
                 orc_hit = bool(int(torch.argmax(sc)) == 0)
 
@@ -282,7 +293,16 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
             ("Y " if syn_hit else ". ") + str(syn_out).strip()[:11], rule))
 
     n = len(NATURAL_NL)
+    reachable = [p["exp"] for p in NATURAL_NL
+                 if nl2id.get(p["exp"].lower()) is not None]
     print("-" * 112)
+    print("  REACHABILITY: {}/{} expected answers have a token mapping at all"
+          .format(len(reachable), n))
+    print("  unreachable: {}".format(
+        [p["exp"] for p in NATURAL_NL
+         if nl2id.get(p["exp"].lower()) is None]))
+    print("  Accuracy cannot exceed {:.0%} until those exist in the lexicon."
+          .format(len(reachable) / n))
     print("  lexical only (v13)    {:>3}/{}   {:.0%}".format(
         res["lexical"], n, res["lexical"] / n))
     print("  + syntax layer        {:>3}/{}   {:.0%}".format(
@@ -333,6 +353,7 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                "syntax_acc": round(res["syntax"] / n, 3),
                "oracle_acc": round(res["oracle"] / n, 3),
                "lemma_diagnostic": round(res["lemma"] / n, 3),
+               "reachable": len(reachable), "reachable_frac": round(len(reachable) / n, 3),
                "debug": dbg,
                "weights_unchanged": bool(unchanged), "rows": rows}
     with open("/cache/out/v14.json", "w", encoding="utf-8") as f:

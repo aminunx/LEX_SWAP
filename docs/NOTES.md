@@ -622,3 +622,45 @@ suffix shape.
 
 Sixth mis-attribution caught by examples rather than aggregates. In all six the
 fault was in my measurement code, never in the method under test.
+
+## 2026-11-16 · The instrumentation paid for itself on the first line
+
+I stopped guessing and printed what the model is actually fed. Three bugs were
+visible immediately, none of which I would have found from outputs:
+
+```
+#1  english : 'I knows that he' [___] 'The book'
+#2  english : 'They said that the house' [___] 'Big'
+#16 english : 'I think that they' [___] 'Morning not'
+#7  answer tok: None   in pool: False
+```
+
+**1. The suffix was encoded as a sentence start.** `enc_words` treated index 0
+as sentence-initial unconditionally, so the suffix of every reordered template
+came out capitalised and without a leading space: `The book`, `Big`. The model
+was scored on `I knows that he reads The book`.
+
+**So the scoring was never at its limit. It was being fed broken English.** The
+oracle arm's 5% measured my encoder, not the method.
+
+**2. `weet -> knows`.** The Dutch-to-English direction carries wrong
+inflections, so `Ik weet` becomes `I knows`. Same class of problem as `gele` vs
+`geel`, in the opposite direction.
+
+**3. `morgen -> Morning`.** Dutch `morgen` is both *tomorrow* and *morning*, and
+the dictionary chose the wrong sense, leaving `I think that they ___ Morning
+not`. With a template that means nothing, `comes` loses to `were` and `all` -
+correctly.
+
+**4. `gelezen` has no token mapping at all**, so prompt 7 was unanswerable. A
+target the system cannot emit bounds accuracy; it is not a wrong prediction.
+That is now measured and printed as REACHABILITY, because an accuracy ceiling
+imposed by missing vocabulary must not be read as a failure of the method.
+
+Fixing one thing this round - the suffix encoding - so the effect stays
+attributable. The other two are real and queued.
+
+**The lesson is not that I had bugs.** It is that six rounds of reading outputs
+found none of these, and one round of printing the intermediate representation
+found four. Outputs tell you something is wrong; only the intermediate tells you
+what.
