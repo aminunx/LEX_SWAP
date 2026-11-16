@@ -68,6 +68,19 @@ ADVERBIALS = {"gisteren", "vandaag", "vanmorgen", "vanmiddag", "vanavond",
 # regression and I had not checked for it.
 
 
+def _fix_nog_niet(words):
+    """`nog niet` is the unit "not yet"; rendered in place it gave "yet not".
+
+    Swapping the pair is the whole fix, and it has to happen before the
+    adverbial pass, which is what split them in the first place.
+    """
+    out = list(words)
+    for i in range(len(out) - 1):
+        if out[i].lower() == "nog" and out[i + 1].lower() == "niet":
+            out[i], out[i + 1] = out[i + 1], out[i]
+    return out
+
+
 def _tail_adverbials_last(tail):
     """English wants aux + participle + OBJECT + adverbial.
 
@@ -76,6 +89,7 @@ def _tail_adverbials_last(tail):
     unidiomatic English and it cost the scoring: `gegeven` and `genomen` beat
     `gelezen` on a template that was already wrong.
     """
+    tail = _fix_nog_niet(tail)
     advs = [w for w in tail if w.lower() in ADVERBIALS]
     rest = [w for w in tail if w.lower() not in ADVERBIALS]
     return rest + advs

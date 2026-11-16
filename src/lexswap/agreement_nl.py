@@ -176,3 +176,47 @@ MISSING_WORDS = {
     "donker": "dark",
     "thuis": "home",
 }
+
+
+# ----------------------------------------------------------------------
+# PRONOUN_FIX was applied unconditionally and broke what it had just fixed:
+# "Zij hebben vorige week het huis" rendered as "She have sold ...". Dutch
+# `zij` is she or they, and the giveaway is the NUMBER OF THE VERB that
+# follows - heeft/is/was are singular, hebben/zijn/waren are plural.
+#
+# This is the mirror of the verb agreement: there the subject decided the verb
+# form, here the verb decides the pronoun. Same information, read the other
+# way, and it has to be read both ways or the two halves contradict.
+PLURAL_VERBS = {"hebben", "zijn", "waren", "worden", "gaan", "komen",
+                "doen", "weten", "kunnen", "willen", "moeten", "zullen",
+                "lezen", "zien", "maken", "nemen", "geven", "wonen",
+                "spelen", "werken", "denken", "zeggen", "vinden", "hopen",
+                "blijven", "staan", "zitten", "nemen", "kopen"}
+SINGULAR_VERBS = {"heeft", "is", "was", "wordt", "gaat", "komt", "doet",
+                  "weet", "kan", "wil", "moet", "zal", "leest", "ziet",
+                  "maakt", "neemt", "geeft", "woont", "speelt", "werkt",
+                  "denkt", "zegt", "vindt", "hoopt", "blijft", "staat",
+                  "zit", "koopt", "at", "ging", "kwam", "zei", "had"}
+
+
+def pronoun_number(next_word):
+    """`she` or `they` for an ambiguous `zij`, decided by the verb after it."""
+    w = (next_word or "").lower()
+    if w in PLURAL_VERBS:
+        return "they"
+    if w in SINGULAR_VERBS:
+        return "she"
+    return "she"      # singular is the commoner sentence-initial reading
+
+
+# These must never get a lowercase form: English `I` is always capitalised,
+# and the templates were reading "i" mid-sentence, which is not English.
+ALWAYS_CAPITAL = {"ik": "I"}
+
+# Senses the dictionary got wrong in context.
+#   je   -> you   (the dictionary gave `your`; `jouw` is your)
+#   nog  -> yet, but `nog niet` is the unit "not yet" - handled by order below
+SENSE_FIX = {"je": "you", "jij": "you", "jullie": "you", "u": "you",
+             "mij": "me", "hem": "him", "haar": "her", "ons": "us",
+             "hen": "them", "wie": "whom", "aankwamen": "arrived",
+             "aankwam": "arrived", "kwamen": "came", "zaten": "sat"}

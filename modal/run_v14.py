@@ -60,9 +60,9 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     ORIG_IDS = {p["id"] for p in NATURAL_NL}
     from src.lexswap.reassemble import render as render_words
     from src.lexswap.syntax_nl import build_candidates, reorder
-    from src.lexswap.agreement_nl import (MISSING_WORDS, PARTICIPLES,
-                                          PRONOUN_FIX, SEPARABLE,
-                                          english_form)
+    from src.lexswap.agreement_nl import (ALWAYS_CAPITAL, MISSING_WORDS,
+                                          PARTICIPLES, SENSE_FIX, SEPARABLE,
+                                          english_form, pronoun_number)
 
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     tok = AutoTokenizer.from_pretrained(model_id)
@@ -102,7 +102,7 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     print("  lexicon {} decode ids, {} mid forms".format(len(id2), len(mid)))
     added = 0
     # hand-made overrides go in FIRST so they beat the dictionary entry
-    for nl_w, en_w in list(PRONOUN_FIX.items()) + list(MISSING_WORDS.items()):
+    for nl_w, en_w in list(SENSE_FIX.items()) + list(MISSING_WORDS.items()):
         tk = tok.encode(" " + en_w, add_special_tokens=False)
         if len(tk) == 1:
             mid[" " + nl_w] = tk[0]
@@ -115,7 +115,19 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                 init[nl_w] = ini[0]
                 id2[ini[0]] = nl_w.capitalize()
             added += 1
-    print("  + {} hand overrides (pronoun sense, missing words)".format(added))
+    for nl_w, en_w in ALWAYS_CAPITAL.items():
+        tk = tok.encode(" " + en_w, add_special_tokens=False)
+        if len(tk) == 1:
+            mid[" " + nl_w] = tk[0]
+            mid[" " + nl_w.capitalize()] = tk[0]
+            id2[tk[0]] = " " + nl_w
+            added += 1
+        tk0 = tok.encode(en_w, add_special_tokens=False)
+        if len(tk0) == 1:
+            init[nl_w] = tk0[0]
+            init[nl_w.capitalize()] = tk0[0]
+            id2[tk0[0]] = nl_w.capitalize()
+    print("  + {} hand overrides (sense, missing words, capitals)".format(added))
     added = 0
     for extra in (PARTICIPLES, SEPARABLE):
         for nl_w, en_w in extra.items():
@@ -146,6 +158,16 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         """
         ids = []
         for k, w in enumerate(words):
+            if w.lower() in ("zij", "ze"):
+                # number from the verb that follows, not a global guess
+                nxt = words[k + 1] if k + 1 < len(words) else None
+                pn = pronoun_number(nxt)
+                tkp = tok.encode(
+                    (pn[0].upper() + pn[1:]) if (k == 0 and first)
+                    else " " + pn, add_special_tokens=False)
+                if len(tkp) == 1:
+                    ids.append(tkp[0])
+                    continue
             agreed = english_form(w, words[k - 1] if k else None)
             if agreed is not None:
                 t = tok.encode(" " + agreed, add_special_tokens=False)
