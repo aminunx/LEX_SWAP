@@ -55,7 +55,9 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
 
     sys.path.insert(0, "/root")
     from src.lexswap.grammar_nl import apply_article_agreement
-    from src.lexswap.natural_nl import NATURAL_NL
+    from src.lexswap.natural_nl import NATURAL_NL, NATURAL_NL_EXTRA
+    ALL_NAT = NATURAL_NL + NATURAL_NL_EXTRA
+    ORIG_IDS = {p["id"] for p in NATURAL_NL}
     from src.lexswap.reassemble import render as render_words
     from src.lexswap.syntax_nl import build_candidates, reorder
     from src.lexswap.agreement_nl import (PARTICIPLES, SEPARABLE,
@@ -230,7 +232,7 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                     return x[: len(x) - len(suf)]
             return x
         return stem(a) == stem(b) or a[:4] == b[:4]
-    for p in NATURAL_NL:
+    for p in ALL_NAT:
         exp = p["exp"]
         # ---- arm 1: v13 behaviour
         lex_out = dec(generate(enc_words(p["nl"].split(" "))))
@@ -322,8 +324,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
             ("Y " if lex_hit else ". ") + lex_out.strip()[:11],
             ("Y " if syn_hit else ". ") + str(syn_out).strip()[:11], rule))
 
-    n = len(NATURAL_NL)
-    reachable = [p["exp"] for p in NATURAL_NL
+    n = len(ALL_NAT)
+    reachable = [p["exp"] for p in ALL_NAT
                  if nl2id.get(p["exp"].lower()) is not None]
     print("-" * 112)
     print("  REACHABILITY: {}/{} expected answers have a token mapping at all"
@@ -333,12 +335,25 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
          if nl2id.get(p["exp"].lower()) is None]))
     print("  Accuracy cannot exceed {:.0%} until those exist in the lexicon."
           .format(len(reachable) / n))
+    # the original 20 reported separately so the whole series stays comparable
+    o = [r for r in rows if r["id"] in ORIG_IDS]
+    print("  --- original 20 only, for continuity with every earlier run ---")
+    print("  lexical {:>2}/20 {:.0%}   syntax {:>2}/20 {:.0%}   oracle {:>2}/20 {:.0%}"
+          .format(sum(r["lexical_hit"] for r in o),
+                  sum(r["lexical_hit"] for r in o) / 20,
+                  sum(r["syntax_hit"] for r in o),
+                  sum(r["syntax_hit"] for r in o) / 20,
+                  sum(r["oracle_hit"] for r in o),
+                  sum(r["oracle_hit"] for r in o) / 20))
+    print("  --- all {} prompts ---".format(n))
     print("  lexical only (v13)    {:>3}/{}   {:.0%}".format(
         res["lexical"], n, res["lexical"] / n))
     print("  + syntax layer        {:>3}/{}   {:.0%}".format(
         res["syntax"], n, res["syntax"] / n))
     print("  oracle slot (bound)   {:>3}/{}   {:.0%}".format(
         res["oracle"], n, res["oracle"] / n))
+    mr = sum(1 for r in rows if r["rule"] != "-")
+    print("  a reorder rule matched  {:>3}/{}   {:.0%}".format(mr, n, mr / n))
     print("  [diagnostic] same verb stem, wrong inflection counted as a hit:"
           "  {:>3}/{}   {:.0%}".format(res["lemma"], n, res["lemma"] / n))
     print("  That line is a DIAGNOSTIC, not the result. It localises the")

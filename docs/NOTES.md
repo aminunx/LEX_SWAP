@@ -713,3 +713,35 @@ syntax rules.** That is the measured conclusion, not a prediction. What closes
 it is training on Dutch word order - and the value of everything above is that
 it says how little might be needed, since the swap is free and already carries
 the lexicon at 99.6% purity.
+
+## 2026-11-16 · Correcting myself: "cannot reach 100%" is not "nothing left to do"
+
+I conflated two claims and the second was wrong. Re-reading the v14 rows found
+concrete, named work rather than a tail of diminishing returns:
+
+**Five of twenty prompts matched NO reorder rule at all** - a quarter of the set
+never touched by the syntax layer. Specifically:
+
+| prompt | why no rule |
+|---|---|
+| `Wij hebben gisteren een film` | R2 required a negation in the tail; there is none |
+| `De man die daar woont is` | relative clause with the verb last - no rule existed |
+| `Het kind dat daar speelt is` | same |
+| `Hoewel het koud was gingen wij` | concessive plus inversion |
+
+**And twenty prompts is too small to measure with.** One prompt is 5%, which is
+wider than any effect the fixes produce, so every number in the last nine runs
+was being read off a scale too coarse to resolve it.
+
+Both fixed this round:
+
+- **R2b** - perfect tense with an object or adverbial between auxiliary and
+  participle, no negation required.
+- **R5** - relative clause with the verb last: English puts the verb straight
+  after the relative pronoun, Dutch puts it at the clause end.
+- **Test set 20 -> 50**, same construction families, originals kept intact and
+  scored separately so the whole series stays comparable.
+
+Verified locally before pushing: rule coverage **47/50 (94%)**, and on the
+original twenty it rises from **15/20 to 18/20** without breaking any rule that
+already worked.

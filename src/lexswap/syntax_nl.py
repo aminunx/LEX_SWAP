@@ -89,6 +89,36 @@ def reorder(text):
                     if subj_end < len(w):
                         return (w[:subj_end], w[subj_end:], "verb")
 
+    # R2b - perfect tense with an object or adverbial between aux and
+    # participle, and NO negation.
+    #   Wij hebben gisteren een film ___  ->  Wij hebben ___ gisteren een film
+    # R2 below required a negation or `al` in the tail, so this whole family
+    # fell through untouched - 3 of the 5 unmatched prompts in v14.
+    for i, x in enumerate(low):
+        if x in PERFECT_AUX and i + 1 < len(w) and i > 0:
+            if low[i - 1] in PRONOUNS or i == 1:
+                tail = low[i + 1:]
+                if not any(t_ in PERFECT_AUX or t_ in MODALS for t_ in tail):
+                    return (w[:i + 1], w[i + 1:], "participle")
+
+    # R5 - relative clause with the verb last.
+    #   De man die daar woont is ___  ->  De man die woont daar is ___
+    # English puts the verb straight after the relative pronoun; Dutch puts it
+    # at the end of the clause. The slot itself stays final, so the caller can
+    # generate normally - the swap only makes the English grammatical.
+    REL = {"die", "dat", "wie", "welke"}
+    for i, x in enumerate(low):
+        if x in REL and i + 2 < len(w):
+            # look for  REL  <adverbial>  <verb>  ...
+            for j in range(i + 2, min(i + 4, len(w))):
+                if low[j].endswith(("t", "en")) and low[j] not in REL:
+                    mid_part = w[i + 1:j]
+                    if mid_part and all(m.lower() not in PERFECT_AUX
+                                        for m in mid_part):
+                        return (w[:i + 1] + [w[j]] + mid_part + w[j + 1:],
+                                [], "final")
+            break
+
     # R2 - perfect tense, participle last.
     #   Ik heb de brief nog niet ___   ->  Ik heb ___ de brief nog niet
     for i, x in enumerate(low):
