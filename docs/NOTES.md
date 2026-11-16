@@ -96,3 +96,36 @@ are true; quoting either alone is a lie.
 - The word-order gap is untouched, and no dictionary closes it. The question
   with commercial weight is how little *training* closes it, given that the swap
   is free.
+
+## 2026-11-16 · v4: the fix worked, found two new problems, and moved the ruler
+
+Step 1 (one prepended space, one table) **did** reach 100% input coverage, and
+Step 2's new metric behaved exactly as the mechanism predicted: output purity
+rose monotonically 62% → 68% → 72% → 77% → 79% → 82% as the lexicon grew. That
+is the direct confirmation of METHODOLOGY 2.5 — growth buys OUTPUT coverage,
+which is why v3 improved when I had predicted it would degrade.
+
+But the identity gate still read **0/12**, and the baseline moved.
+
+**New problem 1: case, not spacing.** `" The"` and `" the"` are different
+tokens. Prepending a space fixed the spacing half of the mismatch and left the
+capital, so `" Het"` mapped to `id(" the")` while the source arm used
+`id(" The")`. Every prompt still differed at position 0.
+
+**New problem 2, and the more important one: the ceiling fell from 83% to 75%.**
+Prepending a space changed the SOURCE arm's tokenisation too, so the elegant fix
+that deleted a bug class also shifted the measuring stick by eight points.
+
+> **Rule added to the methodology:** after any fix, re-check the **baseline**,
+> not only the quantity under test. A change to the encoding convention is a
+> change to both arms, and an improvement measured against a moved ruler is not
+> an improvement.
+
+v5 therefore drops the prepended space (restoring the baseline) and carries
+three surface forms per pair instead of one: no-space capitalised for position
+0, space-lowercase and space-capitalised for mid-sentence.
+
+And where no single-token initial form exists — `"Bread"` is two tokens while
+`" bread"` is one — identity is simply **unachievable** at that position. Rather
+than report a silent failure, the gate now requires identity everywhere it CAN
+hold and prints every exception with its cause.
