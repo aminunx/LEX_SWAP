@@ -423,3 +423,45 @@ in `id2`. Purity and the residual decomposition now both compute from the
 grouping. Had I left the old test in place, the fix would have worked and the
 metric would have reported no change - the exact shape of the v4 mistake, where
 the ruler moved under the measurement.
+
+## 2026-11-16 · v12: purity 0.996, and reassembly proved the diagnosis
+
+```
+Brood en  ->  Kaneel        purity 1.00     ("C" + "innamon" assembled, then translated)
+rendered  157/158  (99.4%)
+not rendered  1    (0.6%)   ['fl']
+whole_word_no_entry      0
+whole_word_entry_exists  0
+```
+
+`fl` is an orphan: it follows a non-letter, so there is no word to assemble it
+into. One token out of 158.
+
+| | |
+|---|---|
+| output purity | **99.6%** |
+| input coverage | **100%** |
+| accuracy | **64%** vs ceiling **61%** |
+| weights | untouched, verified |
+| lexicon | 41,882 entries |
+
+## 2026-11-16 · Why I will not call this complete yet
+
+Every one of those numbers is on **36 prompts constructed to be word-for-word
+parallel with English**. That was the right design - it is what makes the
+identity gate possible, and it let the lexicon be fixed separately from word
+order. But they are English in Dutch clothing, and a system that only handles
+them is not a Dutch model.
+
+The first full run measured naturally written Dutch at **32%**.
+
+So the remaining work is not pushing purity from 99.6% to 100%. It is testing
+the finished system on Dutch that is actually Dutch: verb-final subordinate
+clauses, perfect tenses with the participle last, inversion after a fronted
+element, separable verbs. `natural_nl.py` is that set, 20 prompts, each tagged
+with the construction English does not share.
+
+Whatever it scores is the real answer, and it must be quoted **next to** the
+parallel-set result rather than instead of it. Reporting 99.6% purity and 64%
+accuracy without the natural-Dutch number would be the most misleading thing
+this project could publish, precisely because every individual number is true.
