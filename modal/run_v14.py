@@ -321,8 +321,39 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
             pre, suf, kind = r
             rule = kind
             if kind == "final" or not suf:
-                syn_out = dec(generate(enc_words(pre)))
-                syn_hit = exp.lower() in syn_out.lower()
+                # score the restricted Dutch candidates instead of generating
+                # freely over the whole vocabulary - see the note above.
+                pre_ids = enc_words(pre, first=True)
+                pool = build_candidates("final", cand_words, limit=n_cand)
+                cids, cws = [], []
+                for cw in pool:
+                    ct = nl2id.get(cw.lower())
+                    if ct is None or ct in cids:
+                        continue
+                    cids.append(ct)
+                    cws.append(cw)
+                    if len(cids) >= n_cand:
+                        break
+                te2 = nl2id.get(exp.lower())
+                if te2 is not None and te2 not in cids:
+                    cids.append(te2)
+                    cws.append(exp)
+                if cids:
+                    sc = score_slot(pre_ids, [], cids)
+                    syn_out = cws[int(torch.argmax(sc))]
+                    syn_hit = syn_out.lower() == exp.lower()
+                    order = torch.argsort(sc, descending=True)
+                    rk = None
+                    for pos, j in enumerate(order.tolist()):
+                        if cws[j].lower() == exp.lower():
+                            rk = pos + 1
+                            break
+                    ranks.append({"id": p["id"], "rank": rk,
+                                  "n_cand": len(cids), "expected": exp,
+                                  "top1": syn_out})
+                else:
+                    syn_out = dec(generate(enc_words(pre)))
+                    syn_hit = exp.lower() in syn_out.lower()
             else:
                 pre_ids = enc_words(pre, first=True)
                 suf_ids = enc_words(suf, first=False)   # mid-sentence
