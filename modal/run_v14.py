@@ -62,7 +62,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     from src.lexswap.syntax_nl import build_candidates, reorder
     from src.lexswap.agreement_nl import (ALWAYS_CAPITAL, MISSING_WORDS,
                                           PARTICIPLES, SENSE_FIX, SEPARABLE,
-                                          MORE_FORMS, english_form,
+                                          INSERTED_WORDS, MORE_FORMS,
+                                          english_form,
                                           het_sense, pronoun_number)
 
     dev = "cuda" if torch.cuda.is_available() else "cpu"
@@ -104,7 +105,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     added = 0
     # hand-made overrides go in FIRST so they beat the dictionary entry
     for nl_w, en_w in (list(SENSE_FIX.items()) + list(MISSING_WORDS.items())
-                       + list(MORE_FORMS.items())):
+                       + list(MORE_FORMS.items())
+                       + list(INSERTED_WORDS.items())):
         tk = tok.encode(" " + en_w, add_special_tokens=False)
         if len(tk) == 1:
             mid[" " + nl_w] = tk[0]

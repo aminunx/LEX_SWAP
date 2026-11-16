@@ -263,3 +263,9 @@ MORE_FORMS = {
     "blijft": "stays", "blijven": "stay",
     "ziek": "ill", "aardig": "kind", "stad": "city", "tuin": "garden",
 }
+
+
+# `te` is inserted by the modal rule and had no mapping at all, so it appeared
+# verbatim in the English templates: "He wants te call you tomorrow". I had
+# assumed the dictionary covered a word my own code inserts.
+INSERTED_WORDS = {"te": "to"}

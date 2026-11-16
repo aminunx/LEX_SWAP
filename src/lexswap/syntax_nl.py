@@ -132,6 +132,17 @@ ADVERB_T = {"echt", "recht", "direct", "vaak", "niet", "wat", "dicht",
             "licht", "zacht", "hard", "goed", "slecht", "juist", "meest"}
 
 
+FINITE_VERBS = {"is", "was", "zijn", "waren", "heeft", "hebben", "had",
+                "hadden", "wordt", "werd", "werden", "ging", "gingen",
+                "kwam", "kwamen", "zei", "zeiden", "at", "aten", "zag",
+                "zagen", "nam", "namen", "gaf", "gaven", "deed", "deden",
+                "kon", "konden", "wou", "wilde", "zou", "zouden", "mocht",
+                "moest", "bleef", "bleven", "stond", "zat", "lag", "liep",
+                "kocht", "las", "schreef", "hoorde", "voelde", "dacht",
+                "vond", "maakte", "zette", "bracht", "stuurde", "speelde",
+                "werkte", "woonde", "leerde", "bouwde", "opende"}
+
+
 def fix_main_clause_inversion(w, low):
     """Subordinate clause, then a main clause with verb before subject.
 
@@ -147,7 +158,15 @@ def fix_main_clause_inversion(w, low):
     if low[0] not in FRONTED and low[0] not in SUBORDINATORS:
         return None
     for j in range(3, len(w)):
-        if low[j] in PRONOUNS and len(low[j - 1]) > 2                 and low[j - 1] not in PRONOUNS                 and low[j - 1] not in DETERMINERS                 and low[j - 1].endswith(("t", "n", "f", "g", "d")):
+        prev = low[j - 1]
+        # Guessing "is this a verb" from the suffix failed on the commonest
+        # verbs in the language: `was`, `is` and `zijn` end in -s, so the
+        # inversion was never repaired after them and
+        # "Toen wij aankwamen was het al" stayed inverted. A suffix is an
+        # estimate; an explicit set is a definition.
+        is_verb = prev in FINITE_VERBS or (
+            len(prev) > 2 and prev.endswith(("t", "n", "f", "g", "d")))
+        if low[j] in PRONOUNS and is_verb                 and prev not in PRONOUNS                 and prev not in DETERMINERS:
             return w[:j - 1] + [w[j], w[j - 1]] + w[j + 1:]
     return None
 
@@ -209,6 +228,17 @@ def reorder(text):
                         subj_end = i + 3
                     if subj_end < len(w):
                         return (w[:subj_end], w[subj_end:], "verb")
+
+    # Inversion is repaired BEFORE the perfect-tense rules. R2 used to fire on
+    # `was` first and froze "was het" in Dutch order, giving
+    # "Then we arrived was [dark] it already" where English needs
+    # "it was already dark". Rule order is itself a variable, and this one was
+    # never set deliberately.
+    if low[0] in FRONTED or low[0] in SUBORDINATORS:
+        swapped = fix_main_clause_inversion(w, low)
+        if swapped is not None and swapped != w:
+            w = swapped
+            low = [x.lower() for x in w]
 
     # R2b - perfect tense with an object or adverbial between aux and
     # participle, and NO negation.
