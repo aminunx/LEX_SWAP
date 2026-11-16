@@ -377,3 +377,49 @@ list**, and for predicative positions that difference is visible in the output.
 `kat zijn spelen met een bal` - two verbs in sequence, from word-for-word
 mapping of a compound tense. This belongs to word order and morphology, and no
 dictionary or lookahead addresses it. Recorded as a limit, not queued as a fix.
+
+## 2026-11-16 · v11: both grammar fixes landed, and the swap passed the ceiling
+
+```
+Het boek is op de     ->  tafel. Het boek is op de tafel     article correct
+De kleur van melk is  ->  geel. De kleur van melk is geel     lemma correct
+accuracy 64%   ceiling 61%
+```
+
+The one-token lookahead fixed `De boek` to `Het boek`, and the hand lemma
+entries fixed `gele` to `geel`. And accuracy came out at **64% against a 61%
+ceiling** - the swapped Dutch now scores *above* the source English on this
+set. Small sample, and the direction is the one the whole project was built to
+test.
+
+## 2026-11-16 · `Brood en -> Cinnamon` at purity 0.00, and the unit was wrong
+
+The word is correct and un-rendered. The model spells it as **two tokens**,
+`" C"` + `"innamon"`, so a per-token renderer sees a language-neutral single
+letter followed by a fragment with no word-level entry.
+
+That also explains `fl`, `oul` and `key` in every earlier residual: they are
+pieces of multi-token words, not stray morphology.
+
+**Cause: the procedure renders one token at a time, but the unit that has a
+translation is the WORD.** Any word costing more than one token - which is most
+of the long tail of a BPE vocabulary - is unreachable per-token however complete
+the lexicon becomes.
+
+Second instance of the rule from the last round, and it generalises:
+
+> when a residual error cannot be removed by any entry in the table, the table
+> is not what is wrong - ask what the procedure cannot express.
+
+Fix: group the token stream into words before rendering, look the assembled word
+up whole, fall back to the per-token path when it is not found. The fallback
+means reassembly can only add renderings, never remove one, so purity cannot
+regress.
+
+**And a measurement consequence I nearly missed.** With reassembly, `id in id2`
+is no longer the right test for "was this token rendered" - a multi-token word
+translated as a whole leaves all of its tokens rendered while none of them is
+in `id2`. Purity and the residual decomposition now both compute from the
+grouping. Had I left the old test in place, the fix would have worked and the
+metric would have reported no change - the exact shape of the v4 mistake, where
+the ruler moved under the measurement.
