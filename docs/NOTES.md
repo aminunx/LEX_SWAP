@@ -218,3 +218,48 @@ them is reachable:
 The first number is the honest answer to "how much is left", and it was
 obtainable at any point in the last five rungs. Measuring the ceiling before
 optimising towards it is cheaper than discovering it by exhaustion.
+
+## 2026-11-16 · My "hard ceiling of 84.8%" was an artefact of my own metric
+
+The v8 decomposition reported 18.3% of generated tokens un-renderable, 83% of
+that as `subword_fragment`, and I announced a hard ceiling of 84.8% for the
+whole method.
+
+Then I read the examples:
+
+```
+subword_fragment  29  ['A','B','A','B','A','B','A','B','innamon']
+```
+
+**`A` and `B` are multiple-choice list markers.** They classified as subword
+fragments only because they carry no leading space. One real fragment,
+`innamon`, in the whole set.
+
+A single letter is as language-neutral as a digit — `A.` is `A.` in Dutch too —
+and the purity metric already excluded digits and punctuation for exactly that
+reason. It should have excluded single letters. **The ceiling I announced came
+from a classification bug in the measuring code, not from a property of the
+method.**
+
+Three separate causes had been collapsed into one bucket:
+
+| cause | kind of problem | fix |
+|---|---|---|
+| `A`, `B` list markers | **metric bug** | treat single letters as language-neutral |
+| ` If`, ` It`, ` at` | MUSE genuinely lacks them | hand supplement, closed-class |
+| `innamon` | a real fragment | suffix map, decode direction only |
+
+The second is worth noting on its own: `whole_word_entry_exists` came back at
+**zero**, which proves those words are absent from the 82,167-headword file
+rather than mishandled by my code. MUSE is built by word alignment and curated
+for bilingual lexicon induction, so some closed-class words simply are not in
+it. That is a property of the resource, and no amount of scanning finds them.
+
+Fragment mappings go to the **decode direction only**. Input is whole words, so
+putting fragments in the encode tables would change a prompt's token ids and
+break the identity gate for no gain.
+
+**Pattern across this project: three of my announced limits were measurement
+artefacts.** The 0.30 anchor, the word-order wall, and now this ceiling. Each
+was caught by reading the examples behind the aggregate rather than the
+aggregate alone.
