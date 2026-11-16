@@ -160,6 +160,26 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         return o[0, len(ids):].tolist()
 
     @torch.no_grad()
+    def shortlist(prefix_ids, cand_ids, keep: int = 24):
+        """Rank candidates by the model's next-token prediction on the prefix.
+
+        `oracle` scores against 20 distractors and reaches 32%; `syntax` scores
+        against 300 and reaches 18%. The difference is POOL SIZE - a large pool
+        drowns the right answer in plausible competitors. So stage one uses the
+        model's own left-to-right distribution over the English-order prefix as
+        a prior, which is exactly the grammatical filtering the small oracle
+        pool was getting by accident, and stage two scores the whole sequence
+        on the survivors only.
+        """
+        if len(cand_ids) <= keep:
+            return list(cand_ids)
+        x = torch.tensor([prefix_ids], device=dev)
+        lp = torch.log_softmax(model(input_ids=x).logits[0, -1].float(), -1)
+        c = torch.tensor(cand_ids, device=dev)
+        order = torch.argsort(lp[c], descending=True)[:keep]
+        return [cand_ids[int(i)] for i in order]
+
+    @torch.no_grad()
     def score_slot(prefix_ids, suffix_ids, cand_ids, chunk: int = 32):
         """Chunked so memory does not depend on the candidate count.
 
@@ -270,6 +290,12 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                 if te is not None and te not in cids:
                     cids.append(te)
                     cws.append(exp)
+                short = shortlist(pre_ids, cids, keep=24)
+                keepset = set(short)
+                cids2 = [c for c in cids if c in keepset]
+                cws2 = [w for c, w in zip(cids, cws) if c in keepset]
+                if cids2:
+                    cids, cws = cids2, cws2
                 sc = score_slot(pre_ids, suf_ids, cids)
                 best = int(torch.argmax(sc))
                 syn_out = cws[best]

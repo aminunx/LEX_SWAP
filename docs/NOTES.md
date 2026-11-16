@@ -745,3 +745,35 @@ Both fixed this round:
 Verified locally before pushing: rule coverage **47/50 (94%)**, and on the
 original twenty it rises from **15/20 to 18/20** without breaking any rule that
 already worked.
+
+## 2026-11-16 · The bigger test set resolved an effect the small one hid
+
+```
+original 20 :  lexical 10%   syntax 15%   oracle 35%
+all 50      :  lexical  4%   syntax 18%   oracle 32%
+rule matched:  47/50  (94%)
+```
+
+**On 50 prompts the syntax layer takes 4% to 18% - four and a half times.** On
+20 the same contribution read as one prompt and looked like noise.
+
+So enlarging the set did not flatter the result, it **revealed** one. Every
+number in the preceding nine runs was being read off a scale that could not
+resolve what the fixes were doing, and I was treating that coarseness as
+evidence of a plateau.
+
+## 2026-11-16 · The next lever, measured rather than guessed
+
+```
+syntax  18%   scores against up to 300 candidates
+oracle  32%   scores against 20
+```
+
+The gap is **pool size**. A large pool drowns the correct answer in plausible
+competitors, and the oracle's small pool was getting grammatical filtering for
+free, by accident of being small.
+
+Fix: two stages. The model's own left-to-right distribution over the
+English-order prefix ranks the candidates, the top 24 survive, and
+full-sequence scoring runs only on those. That is the filtering the oracle had
+by luck, done deliberately - and it uses nothing but the unchanged model.
