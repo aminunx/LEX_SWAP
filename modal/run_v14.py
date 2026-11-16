@@ -1,0 +1,243 @@
+"""LEX_SWAP v14 — add the syntax layer, and measure natural Dutch again.
+
+v13 result: 64% on word-order-parallel prompts, **10% on naturally written
+Dutch**, at 94% output purity. The words came out Dutch and the reasoning was
+broken, because the model internally received English word order.
+
+No lexicon entry fixes that. The missing thing was a syntactic procedure: the
+pipeline replaced words and left them where they sat.
+
+v14 adds one. Dutch is reordered into English order before the lexical map, and
+where the reordering moves the predicted word off the end, the model is used as
+a SCORER over candidates in that slot rather than as a left-to-right generator -
+the only way to query a non-final position.
+
+Still no training and no weight edits.
+
+Three arms on the natural-Dutch set, so the syntax layer's contribution is
+isolated:
+
+  lexical      v13 behaviour: substitute words, generate left to right
+  syntax       reorder, then generate or score the slot
+  oracle_slot  score only the correct answer against its competitors, which
+               bounds what the scoring approach can reach at all
+
+The third arm matters. If `syntax` is far below `oracle_slot`, the reordering
+rules are the limit. If both are low, scoring is the limit, and that is a
+different problem with a different fix.
+
+Run:  modal run modal/run_v14.py
+"""
+
+import modal
+
+app = modal.App("lexswap-v14")
+vol = modal.Volume.from_name("lexswap", create_if_missing=True)
+
+image = (
+    modal.Image.debian_slim(python_version="3.11")
+    .pip_install("torch", "transformers", "requests", "numpy")
+    .env({"HF_HOME": "/cache/hf"})
+    .add_local_dir("src", remote_path="/root/src")
+)
+BAR = "=" * 112
+
+
+@app.function(image=image, gpu="A10G", volumes={"/cache": vol}, timeout=14400)
+def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
+        n_cand: int = 300):
+    import json
+    import os
+    import sys
+
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    sys.path.insert(0, "/root")
+    from src.lexswap.grammar_nl import apply_article_agreement
+    from src.lexswap.natural_nl import NATURAL_NL
+    from src.lexswap.reassemble import render as render_words
+    from src.lexswap.syntax_nl import reorder
+
+    dev = "cuda" if torch.cuda.is_available() else "cpu"
+    tok = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForCausalLM.from_pretrained(model_id).to(dev).eval()
+    sig = {k: v.detach().clone() for k, v in list(model.state_dict().items())[:3]}
+
+    with open("/cache/out/lexicon_nl.json", encoding="utf-8") as f:
+        lex = json.load(f)
+    id2 = {int(k): v for k, v in lex["decode"].items()}
+    mid, init = lex["encode_mid"], lex["encode_initial"]
+    en2nl = {v.strip().lower(): k.strip() for k, v in mid.items()}
+    nl2id = {k.strip().lower(): int(v) for k, v in mid.items()}
+    print("  lexicon {} decode ids, {} mid forms".format(len(id2), len(mid)))
+
+    def enc_words(words):
+        ids = []
+        for k, w in enumerate(words):
+            if k == 0:
+                got = (init.get(w) or init.get(w.lower()) or
+                       mid.get(" " + w) or mid.get(" " + w.lower()))
+            else:
+                got = (mid.get(" " + w) or mid.get(" " + w.lower()) or
+                       mid.get(" " + w.capitalize()))
+            if got is not None:
+                ids.append(int(got))
+            else:
+                ids.extend(tok.encode(w if k == 0 else " " + w,
+                                      add_special_tokens=False))
+        return ids
+
+    def dec(ids):
+        parts = render_words(ids, lambda t: tok.decode([t]), id2, en2nl.get)
+        return "".join(apply_article_agreement(parts))
+
+    @torch.no_grad()
+    def generate(ids):
+        x = torch.tensor([ids], device=dev)
+        o = model.generate(x, max_new_tokens=max_new, do_sample=False,
+                           pad_token_id=tok.eos_token_id)
+        return o[0, len(ids):].tolist()
+
+    @torch.no_grad()
+    def score_slot(prefix_ids, suffix_ids, cand_ids):
+        """Mean log-prob of [prefix, candidate, suffix] for each candidate.
+
+        Batched: one forward over all candidates. The candidate and the suffix
+        are both scored, so a candidate that makes the REST of the sentence
+        likely wins - which is the whole point of querying a non-final slot.
+        """
+        rows = [prefix_ids + [c] + suffix_ids for c in cand_ids]
+        L = max(len(r) for r in rows)
+        pad = tok.eos_token_id
+        x = torch.full((len(rows), L), pad, device=dev, dtype=torch.long)
+        m = torch.zeros((len(rows), L), device=dev, dtype=torch.long)
+        for i, r in enumerate(rows):
+            x[i, : len(r)] = torch.tensor(r, device=dev)
+            m[i, : len(r)] = 1
+        lg = model(input_ids=x, attention_mask=m).logits.float()
+        lp = torch.log_softmax(lg[:, :-1], -1)
+        tgt = x[:, 1:]
+        got = lp.gather(2, tgt.unsqueeze(2)).squeeze(2)
+        keep = m[:, 1:].float()
+        start = len(prefix_ids) - 1          # score candidate + suffix only
+        keep[:, :max(start, 0)] = 0
+        return (got * keep).sum(1) / keep.sum(1).clamp_min(1)
+
+    cand_words = [w.strip() for w in mid.keys() if w.strip().isalpha()]
+    print("  candidate pool: {} Dutch surface forms".format(len(cand_words)))
+
+    print("")
+    print(BAR)
+    print("NATURAL DUTCH - three arms")
+    print(BAR)
+    print("{:>3} {:<34}{:<10}{:<14}{:<14}{:<12}".format(
+        "#", "prompt", "expect", "lexical", "syntax", "rule"))
+    print("-" * 112)
+
+    res = {"lexical": 0, "syntax": 0, "oracle": 0}
+    rows = []
+    for p in NATURAL_NL:
+        exp = p["exp"]
+        # ---- arm 1: v13 behaviour
+        lex_out = dec(generate(enc_words(p["nl"].split(" "))))
+        lex_hit = exp.lower() in lex_out.lower()
+
+        # ---- arm 2: syntax layer
+        r = reorder(p["nl"])
+        rule = "-"
+        if r is None:
+            syn_out, syn_hit = lex_out, lex_hit
+        else:
+            pre, suf, kind = r
+            rule = kind
+            if kind == "final" or not suf:
+                syn_out = dec(generate(enc_words(pre)))
+                syn_hit = exp.lower() in syn_out.lower()
+            else:
+                pre_ids, suf_ids = enc_words(pre), enc_words(suf)
+                pool = [w for w in cand_words][:4000]
+                if exp not in pool:
+                    pool.append(exp)
+                cids, cws = [], []
+                for w in pool:
+                    t = nl2id.get(w.lower())
+                    if t is not None:
+                        cids.append(t)
+                        cws.append(w)
+                    if len(cids) >= n_cand and exp in cws:
+                        break
+                if exp in nl2id and nl2id[exp.lower()] not in cids:
+                    cids.append(nl2id[exp.lower()])
+                    cws.append(exp)
+                sc = score_slot(pre_ids, suf_ids, cids)
+                best = int(torch.argmax(sc))
+                syn_out = cws[best]
+                syn_hit = syn_out.lower() == exp.lower()
+
+        # ---- arm 3: oracle slot - can scoring reach the right answer at all?
+        orc_hit = False
+        if r is not None and r[1]:
+            pre, suf, _ = r
+            t_exp = nl2id.get(exp.lower())
+            if t_exp is not None:
+                distract = [nl2id[w.lower()] for w in cand_words[:60]
+                            if w.lower() in nl2id][:20]
+                sc = score_slot(enc_words(pre), enc_words(suf),
+                                [t_exp] + distract)
+                orc_hit = bool(int(torch.argmax(sc)) == 0)
+
+        res["lexical"] += lex_hit
+        res["syntax"] += syn_hit
+        res["oracle"] += orc_hit
+        rows.append({"id": p["id"], "nl": p["nl"], "expected": exp,
+                     "rule": rule, "lexical_out": lex_out.strip(),
+                     "lexical_hit": bool(lex_hit),
+                     "syntax_out": syn_out.strip(), "syntax_hit": bool(syn_hit),
+                     "oracle_hit": bool(orc_hit), "why": p["why"]})
+        print("{:>3} {:<34}{:<10}{:<14}{:<14}{:<12}".format(
+            p["id"], p["nl"][:33], exp[:9],
+            ("Y " if lex_hit else ". ") + lex_out.strip()[:11],
+            ("Y " if syn_hit else ". ") + str(syn_out).strip()[:11], rule))
+
+    n = len(NATURAL_NL)
+    print("-" * 112)
+    print("  lexical only (v13)    {:>3}/{}   {:.0%}".format(
+        res["lexical"], n, res["lexical"] / n))
+    print("  + syntax layer        {:>3}/{}   {:.0%}".format(
+        res["syntax"], n, res["syntax"] / n))
+    print("  oracle slot (bound)   {:>3}/{}   {:.0%}".format(
+        res["oracle"], n, res["oracle"] / n))
+    print("")
+    if res["syntax"] > res["lexical"]:
+        print("  The syntax layer helps. Word order was addressable without")
+        print("  training after all - by reordering and scoring, not by lexicon.")
+    if res["oracle"] > res["syntax"]:
+        print("  oracle > syntax: the REORDERING RULES are the limit, not the")
+        print("  idea. More rules, or better candidate restriction, gains more.")
+    elif res["oracle"] <= res["syntax"]:
+        print("  oracle is not above syntax: the scoring approach itself is at")
+        print("  its limit here, which is a different problem from the rules.")
+
+    after = model.state_dict()
+    unchanged = all(torch.equal(sig[k], after[k]) for k in sig)
+    print("")
+    print("  weights unchanged: {}".format(unchanged))
+
+    os.makedirs("/cache/out", exist_ok=True)
+    payload = {"model": model_id, "n": n,
+               "lexical": res["lexical"], "syntax": res["syntax"],
+               "oracle": res["oracle"],
+               "lexical_acc": round(res["lexical"] / n, 3),
+               "syntax_acc": round(res["syntax"] / n, 3),
+               "oracle_acc": round(res["oracle"] / n, 3),
+               "weights_unchanged": bool(unchanged), "rows": rows}
+    with open("/cache/out/v14.json", "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    vol.commit()
+    return payload
+
+
+@app.local_entrypoint()
+def main(n_cand: int = 300):
+    run.remote(n_cand=n_cand)

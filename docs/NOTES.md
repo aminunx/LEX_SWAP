@@ -465,3 +465,60 @@ Whatever it scores is the real answer, and it must be quoted **next to** the
 parallel-set result rather than instead of it. Reporting 99.6% purity and 64%
 accuracy without the natural-Dutch number would be the most misleading thing
 this project could publish, precisely because every individual number is true.
+
+## 2026-11-16 · v13: the honest number, and what it demands next
+
+```
+natural Dutch      coverage 90.1%   purity 0.941   accuracy 10%
+parallel-order     coverage 100%    purity 0.996   accuracy 64%
+```
+
+The lexicon is not what fails. **Purity is 94% on natural Dutch too** - the
+words come out Dutch. The model internally receives English word order:
+
+```
+Gisteren ging ik naar de  ->  winkel naar kopen enkele boeken
+                                     ^^^^^^^^^^^ `to buy` literal; Dutch wants `om te kopen`
+Ik weet dat hij het boek  ->  is een goed boek      (should be `leest`)
+```
+
+**More dangerous than an obvious failure**: the output reads as correct Dutch,
+so someone who does not speak it cannot see that the reasoning broke. High
+purity is evidence about the lexicon and never about correctness.
+
+## 2026-11-16 · The missing layer was syntactic, and I had not built one at all
+
+Asking the rule again - *what can the procedure not express?* - the answer this
+time is not a detail. **There was no syntactic procedure.** Substitution
+replaces words and leaves them where they sat, so word order was never
+addressed by anything in the pipeline.
+
+That is a build gap, not a hard limit, and it is still reachable without
+training: reorder Dutch into English order *before* the lexical map.
+
+## 2026-11-16 · And the obstacle that makes it non-trivial
+
+Reordering an INCOMPLETE sentence moves the predicted word off the end.
+
+```
+Ik weet dat hij het boek ___      expects `leest`
+I know that he ___ the book       the verb sits BEFORE the object
+```
+
+Left-to-right generation cannot reach a slot that is not final. Feeding
+`I know that he` and generating does give a verb, but discards `het boek` -
+exactly the evidence that makes `reads` likelier than `is`.
+
+**So the model is used as a SCORER, not a generator.** Build the English-order
+template with the object in place, put each candidate in the hole, score the
+whole sequence, take the best. That is the only way to query a non-final
+position, and it needs no training because scoring is what a causal LM already
+does.
+
+Three arms, so the contribution is attributable: `lexical` reproduces v13,
+`syntax` adds reordering plus slot scoring, and `oracle_slot` scores only the
+correct answer against distractors. The third bounds the approach: if `syntax`
+sits far below `oracle`, the **rules** are the limit and more rules pay; if both
+are low, **scoring** is the limit, which is a different problem with a different
+fix. Without that arm a low result would be unattributable - the same mistake as
+the five-variable runs at the start of this project.
