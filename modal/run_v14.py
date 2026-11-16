@@ -62,7 +62,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     from src.lexswap.syntax_nl import build_candidates, reorder
     from src.lexswap.agreement_nl import (ALWAYS_CAPITAL, MISSING_WORDS,
                                           PARTICIPLES, SENSE_FIX, SEPARABLE,
-                                          english_form, pronoun_number)
+                                          MORE_FORMS, english_form,
+                                          het_sense, pronoun_number)
 
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     tok = AutoTokenizer.from_pretrained(model_id)
@@ -102,7 +103,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     print("  lexicon {} decode ids, {} mid forms".format(len(id2), len(mid)))
     added = 0
     # hand-made overrides go in FIRST so they beat the dictionary entry
-    for nl_w, en_w in list(SENSE_FIX.items()) + list(MISSING_WORDS.items()):
+    for nl_w, en_w in (list(SENSE_FIX.items()) + list(MISSING_WORDS.items())
+                       + list(MORE_FORMS.items())):
         tk = tok.encode(" " + en_w, add_special_tokens=False)
         if len(tk) == 1:
             mid[" " + nl_w] = tk[0]
@@ -158,6 +160,16 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         """
         ids = []
         for k, w in enumerate(words):
+            if w.lower() == "het":
+                # article or pronoun, decided by the following word
+                nxt = words[k + 1] if k + 1 < len(words) else None
+                hs = het_sense(nxt)
+                tkh = tok.encode(
+                    (hs[0].upper() + hs[1:]) if (k == 0 and first)
+                    else " " + hs, add_special_tokens=False)
+                if len(tkh) == 1:
+                    ids.append(tkh[0])
+                    continue
             if w.lower() in ("zij", "ze"):
                 # number from the verb that follows, not a global guess
                 nxt = words[k + 1] if k + 1 < len(words) else None

@@ -44,8 +44,10 @@ SUBORDINATORS = {
 PERFECT_AUX = {"heb", "hebt", "heeft", "hebben", "had", "hadden",
                "ben", "bent", "is", "zijn", "was", "waren"}
 # modals that take `to` in English - want, need, try
+# `should` and `must` take a bare infinitive in English, so moet/moeten do
+# NOT belong here - they produced "We should to sell the house".
 MODALS_WITH_TO = {"wil", "wilt", "willen", "hoop", "hoopt", "hopen",
-                  "probeer", "probeert", "proberen", "moet", "moeten"}
+                  "probeer", "probeert", "proberen"}
 MODALS = {"wil", "wilt", "willen", "kan", "kunt", "kunnen", "moet",
           "moeten", "zal", "zult", "zullen", "mag", "mogen", "ga", "gaat",
           "gaan", "kon", "wou", "zou", "zouden"}
@@ -90,9 +92,23 @@ def _tail_adverbials_last(tail):
     `gelezen` on a template that was already wrong.
     """
     tail = _fix_nog_niet(tail)
-    advs = [w for w in tail if w.lower() in ADVERBIALS]
-    rest = [w for w in tail if w.lower() not in ADVERBIALS]
-    return rest + advs
+    # two-word adverbials - `vorige week`, `volgende maand` - have to move as a
+    # unit. The word-by-word mover left "sold previous week the house".
+    MULTI = {("vorige", "week"), ("volgende", "week"), ("vorige", "maand"),
+             ("volgende", "maand"), ("vorig", "jaar"), ("volgend", "jaar")}
+    out, advs, i = [], [], 0
+    while i < len(tail):
+        pair = (tail[i].lower(), tail[i + 1].lower()) if i + 1 < len(tail) else None
+        if pair in MULTI:
+            advs.extend(tail[i:i + 2])
+            i += 2
+            continue
+        if tail[i].lower() in ADVERBIALS:
+            advs.append(tail[i])
+        else:
+            out.append(tail[i])
+        i += 1
+    return out + advs
 
 
 def _split(text):

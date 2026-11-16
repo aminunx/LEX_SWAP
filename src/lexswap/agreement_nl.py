@@ -220,3 +220,46 @@ SENSE_FIX = {"je": "you", "jij": "you", "jullie": "you", "u": "you",
              "mij": "me", "hem": "him", "haar": "her", "ons": "us",
              "hen": "them", "wie": "whom", "aankwamen": "arrived",
              "aankwam": "arrived", "kwamen": "came", "zaten": "sat"}
+
+
+# ----------------------------------------------------------------------
+# `het` is the definite article AND the pronoun `it`. Template #17 rendered
+# "Toen wij aankwamen was het al" as "... was the already", where English needs
+# "it was already dark".
+#
+# This is the third word with one Dutch form and two English ones - after
+# `de/het` for gender and `zij` for number - and the shape is identical every
+# time: the choice lives in a NEIGHBOURING word, so no per-token table can
+# hold it. A verb after it means the pronoun; a noun after it means the
+# article.
+ARTICLE_NEXT_IS_VERB = SINGULAR_VERBS | PLURAL_VERBS | {
+    "al", "niet", "nog", "ook", "er", "was", "is", "wordt", "werd"}
+
+
+def het_sense(next_word):
+    """`it` or `the` for Dutch `het`, decided by what follows."""
+    w = (next_word or "").lower()
+    if not w:
+        return "it"
+    if w in ARTICLE_NEXT_IS_VERB:
+        return "it"
+    return "the"
+
+
+# forms still missing from the lexicon, seen as [?] in the template dump
+MORE_FORMS = {
+    "gooit": "throws", "gooien": "throw", "gegooid": "thrown",
+    "zingen": "sing", "zingt": "sings", "gezongen": "sung",
+    "opent": "opens", "openen": "open", "geopend": "opened",
+    "verandert": "changes", "veranderen": "change",
+    "verkopen": "sell", "verkoopt": "sells",
+    "schrijven": "write", "schrijft": "writes",
+    "zwemmen": "swim", "zwemt": "swims", "gezwommen": "swum",
+    "horen": "hear", "hoort": "hears", "gehoord": "heard",
+    "helpen": "help", "helpt": "helps", "geholpen": "helped",
+    "kopen": "buy", "koopt": "buys",
+    "lezen": "read", "leest": "reads",
+    "nemen": "take", "neemt": "takes",
+    "blijft": "stays", "blijven": "stay",
+    "ziek": "ill", "aardig": "kind", "stad": "city", "tuin": "garden",
+}
