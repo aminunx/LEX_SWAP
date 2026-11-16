@@ -186,8 +186,7 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         where the failure sits is not.
         """
         a, b = a.lower(), b.lower()
-        for w in (a, b):
-            pass
+
         def stem(x):
             for pre in ("ge",):
                 if x.startswith(pre) and len(x) > 4:
@@ -265,9 +264,9 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                                 [t_exp] + distract)
                 orc_hit = bool(int(torch.argmax(sc)) == 0)
 
-        lemma_hit = syn_hit or (r is not None and r[1] and
-                                isinstance(syn_out, str) and
-                                same_lemma(syn_out, exp))
+        lemma_hit = bool(syn_hit) or bool(
+            r is not None and bool(r[1]) and isinstance(syn_out, str)
+            and same_lemma(syn_out, exp))
         res["lexical"] += lex_hit
         res["syntax"] += syn_hit
         res["oracle"] += orc_hit
