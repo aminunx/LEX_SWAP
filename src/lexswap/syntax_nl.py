@@ -55,6 +55,25 @@ NEGATION = {"niet", "niets", "nooit", "geen", "nog"}
 TO_INF = "te"
 
 
+ADVERBIALS = {"gisteren", "vandaag", "vanmorgen", "vanmiddag", "vanavond",
+              "morgen", "straks", "nu", "al", "net", "toen", "later",
+              "eerst", "daarna", "vroeg", "laat", "vaak", "soms", "altijd",
+              "nooit", "weer", "nog"}
+
+
+def _tail_adverbials_last(tail):
+    """English wants aux + participle + OBJECT + adverbial.
+
+    R2b moved the participle to the auxiliary but left the Dutch order of the
+    rest, producing `I have ___ this morning the newspaper`. That is
+    unidiomatic English and it cost the scoring: `gegeven` and `genomen` beat
+    `gelezen` on a template that was already wrong.
+    """
+    advs = [w for w in tail if w.lower() in ADVERBIALS]
+    rest = [w for w in tail if w.lower() not in ADVERBIALS]
+    return rest + advs
+
+
 def _split(text):
     return [w for w in text.strip().split(" ") if w]
 
@@ -99,7 +118,8 @@ def reorder(text):
             if low[i - 1] in PRONOUNS or i == 1:
                 tail = low[i + 1:]
                 if not any(t_ in PERFECT_AUX or t_ in MODALS for t_ in tail):
-                    return (w[:i + 1], w[i + 1:], "participle")
+                    return (w[:i + 1],
+                            _tail_adverbials_last(w[i + 1:]), "participle")
 
     # R5 - relative clause with the verb last.
     #   De man die daar woont is ___  ->  De man die woont daar is ___
@@ -182,8 +202,11 @@ def build_candidates(slot_kind, lexicon_nl_words, limit=400, subject=None):
             # in -d/-t for weak verbs with an inseparable prefix. The old test
             # also admitted every infinitive via -en, which is why `lezen`
             # kept winning slots that belong to `gelezen`.
+            INSEP = ("be", "ver", "ont", "her", "er", "ge", "mis")
             if lw.startswith("ge") or (lw.endswith(("d", "t"))
-                                       and not lw.endswith("en")):
+                                       and not lw.endswith("en")
+                                       and lw.startswith(INSEP)
+                                       and len(lw) > 5):
                 out.append(word)
         elif slot_kind == "infinitive":
             # infinitives end in -en and never carry ge-

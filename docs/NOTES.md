@@ -819,3 +819,40 @@ that belong to `gelezen`.
 
 Tightened: a participle must carry `ge-` or end in `-d`/`-t` without `-en`; an
 infinitive must end in `-en` and never carry `ge-`.
+
+## 2026-11-16 · Tightening morphology worked; reading the rows found two more
+
+```
+syntax  18% -> 20%
+```
+
+The participle slots now produce actual participles - `gekocht`, `gezien`,
+`gelezen`, `verteld`, `genomen` - and three prompts became correct. Confirms
+that the loss was inflection, as the lemma diagnostic had said.
+
+Two defects visible in the rows:
+
+**1. `had` won a participle slot.** The `-d`/`-t` branch admitted finite past
+forms. `had` and `was` are not participles. Tightened to require `ge-` or a true
+inseparable prefix (`be-`, `ver-`, `ont-`, `her-`, `er-`, `mis-`) with length
+over five.
+
+**2. And the more interesting one: my own reordering produced unidiomatic
+English.**
+
+```
+Ik heb vanmorgen de krant  ->  I have ___ this morning the newspaper
+```
+
+English puts the adverbial AFTER the object: *I have read the newspaper this
+morning*. R2b moved the participle to the auxiliary and left the rest in Dutch
+order, so the template the scorer saw was already wrong - and `gegeven` and
+`genomen` beat `gelezen` on a bad template rather than on merit.
+
+**So a reordering rule can be half-right and that is worse than useless**: it
+fires, it looks like it applied, and it hands the scorer a sentence no English
+speaker would write. The rule now moves adverbials to the end of the tail.
+
+Both verified locally before pushing - `had`/`was`/`lezen` excluded from
+participle slots, and all three perfect-tense prompts reordered with the
+adverbial last.
