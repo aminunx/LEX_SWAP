@@ -277,6 +277,25 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         order = torch.argsort(lp[c], descending=True)[:keep]
         return [cand_ids[int(i)] for i in order]
 
+    _uncond_cache = {}
+
+    @torch.no_grad()
+    def unconditional(cand_ids, chunk: int = 64):
+        """logP of each candidate with no informative context.
+
+        A neutral one-token context, so what comes back is close to the
+        model's prior over the token rather than anything about the sentence.
+        """
+        missing = [c for c in cand_ids if c not in _uncond_cache]
+        for k in range(0, len(missing), chunk):
+            part = missing[k:k + chunk]
+            x = torch.full((len(part), 1), tok.eos_token_id, device=dev,
+                           dtype=torch.long)
+            lp = torch.log_softmax(model(input_ids=x).logits[:, -1].float(), -1)
+            for i, c in enumerate(part):
+                _uncond_cache[c] = float(lp[i, c])
+        return torch.tensor([_uncond_cache[c] for c in cand_ids], device=dev)
+
     @torch.no_grad()
     def score_slot(prefix_ids, suffix_ids, cand_ids, chunk: int = 32):
         """Chunked so memory does not depend on the candidate count.
@@ -331,6 +350,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     rows = []
     dbg = []
     ranks = []
+    pmi_alt = []
+    PMI = True        # lambda = 1; the alternative is scored alongside
     DEBUG_IDS = set(range(1, 51))
 
     def same_lemma(a, b):
@@ -405,7 +426,14 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                 # suffix, so it is strictly less informed than the score it
                 # would be filtering for, and it discarded correct answers.
                 # Measured 18% -> 14%. Reverted and recorded.
-                sc = score_slot(pre_ids, suf_ids, cids)
+                sc_raw = score_slot(pre_ids, suf_ids, cids)
+                sc_pmi = sc_raw - unconditional(cids) / max(
+                    1, 1 + len(suf_ids))
+                sc = sc_pmi if PMI else sc_raw
+                # record what the OTHER setting would have chosen
+                alt = sc_raw if PMI else sc_pmi
+                pmi_alt.append(cws[int(torch.argmax(alt))].lower()
+                               == exp.lower())
                 best = int(torch.argmax(sc))
                 syn_out = cws[best]
                 syn_hit = syn_out.lower() == exp.lower()
@@ -514,6 +542,9 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     print("  found and outranked - the prompt has several valid fillers, which")
     print("  is a test-design problem, not a model one. A small gap means the")
     print("  answer is genuinely not being found, which is a template problem.")
+    print("  PMI scoring is ON; the same slots under the previous")
+    print("  frequency-biased scoring would have scored {}/{}".format(
+        sum(pmi_alt), len(pmi_alt)))
     print("  --- STRICT: first content word, exact match, both paths ---")
     print("  lexical {:>3}/{}  {:.0%}     syntax {:>3}/{}  {:.0%}".format(
         res["lexical"], n, res["lexical"] / n,
@@ -572,6 +603,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                "oracle_acc": round(res["oracle"] / n, 3),
                "lemma_diagnostic": round(res["lemma"] / n, 3),
                "ranks": ranks,
+               "pmi_on": PMI, "alt_scoring_hits": sum(pmi_alt),
+               "alt_scoring_n": len(pmi_alt),
                "lexical_loose": res.get("lexical_loose", 0),
                "syntax_loose": res.get("syntax_loose", 0),
                "topk": {str(k): sum(1 for r in ranks
