@@ -664,3 +664,52 @@ attributable. The other two are real and queued.
 found none of these, and one round of printing the intermediate representation
 found four. Outputs tell you something is wrong; only the intermediate tells you
 what.
+
+## 2026-11-16 · v14 final: the syntax layer works, and the asymptote is visible
+
+```
+REACHABILITY            20/20   (was 16/20)   no vocabulary excuse remains
+lexical only (v13)       2/20   10%
++ syntax layer           3/20   15%
+oracle slot (bound)      6/20   30%   (was 5%)
+```
+
+Two things settled.
+
+**The syntax layer helps.** 15% against 10%. Word order was addressable without
+training, by reordering plus scoring rather than by lexicon - which is what the
+earlier "word order is the wall" claim denied.
+
+**And the diagnostic flipped.** `oracle` is now ABOVE `syntax`, so the limit is
+the reordering rules rather than the scoring. The earlier 5% was my encoder,
+measured three bugs ago. That correction is now complete.
+
+### But the trajectory has to be stated plainly
+
+On a 20-prompt set, **10% to 15% is one prompt.** That is inside the noise of
+this sample, and nine iterations of v14 have cost nine GPU runs for roughly
+that. The honest reading is not "progress is slow" but "the measurement is too
+small to resolve what the fixes are doing".
+
+And the bound is visible. `oracle` scores the correct answer against only 20
+distractors and still wins just 6/20. Even perfect reordering and perfect
+candidate restriction leave scoring picking right under a third of the time in
+the EASY setting. That is a property of using an English-order model to produce
+Dutch inflections, not a bug left to find.
+
+### What remains, named rather than promised
+
+Five of twenty prompts match no rule at all - relative clauses (`die daar
+woont`, `dat daar speelt`), perfect with an intervening object (`hebben
+gisteren een film`), concessives (`Hoewel ... gingen wij`). Those fall through
+to the lexical path untouched.
+
+The near misses are semantic neighbours: `verstuurd` (sent) for `gelezen`
+(read), `gegeven` (given) for `gezegd` (said), `kocht` (bought) for `leest`
+(reads). The slot and the category are right; the lexical choice is not.
+
+**100% on natural Dutch is not reachable by vocabulary swap plus hand-written
+syntax rules.** That is the measured conclusion, not a prediction. What closes
+it is training on Dutch word order - and the value of everything above is that
+it says how little might be needed, since the swap is free and already carries
+the lexicon at 99.6% purity.

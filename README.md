@@ -19,7 +19,20 @@ measured 2026-11-16
 | prompt style | input coverage | output purity | **accuracy** | English ceiling |
 |---|---|---|---|---|
 | word-order parallel to English | 100% | **99.6%** | **64%** | 61% |
-| **naturally written Dutch** | 90.1% | 94.1% | **10%** | — |
+| naturally written Dutch, lexicon only | 90.1% | 94.1% | 10% | — |
+| **naturally written Dutch, + syntax layer** | 100% | 94.1% | **15%** | — |
+
+A syntax layer was built after the first natural-Dutch result: Dutch is
+reordered into English order before the lexical map, and where that moves the
+predicted word off the end the model is used as a **scorer** over candidates in
+the slot rather than as a generator. Still no training, still no weight edits.
+
+It helps — 15% against 10% — which refutes the earlier claim that word order was
+unreachable without training. But on twenty prompts that difference is **one
+prompt**, and an `oracle` arm that scores the correct answer against only twenty
+distractors still wins just 6/20. **Even perfect rules leave scoring picking
+right under a third of the time**, because an English-order model cannot be made
+to choose Dutch inflections reliably.
 
 **Both rows are true. Neither may be quoted alone.**
 
