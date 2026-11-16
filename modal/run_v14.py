@@ -106,6 +106,16 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                 id2.setdefault(t[0], " " + nl_w)
                 added += 1
     print("  + {} participle/separable forms, for REACHABILITY".format(added))
+    # nl2id was built BEFORE these additions, so reachability could not see
+    # them and the count did not move. Rebuild it here, lowercase-preferred.
+    nl2id.clear()
+    for k, v in mid.items():
+        w = k.strip()
+        if w and w.islower():
+            nl2id[w] = int(v)
+    for k, v in mid.items():
+        nl2id.setdefault(k.strip().lower(), int(v))
+    print("  nl2id rebuilt: {} Dutch forms".format(len(nl2id)))
 
     def enc_words(words, first=True):
         """`first=False` for a mid-sentence fragment.
@@ -242,7 +252,9 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                 suf_ids = enc_words(suf, first=False)   # mid-sentence
                 # restrict by the category the slot wants - an unfiltered pool
                 # is dominated by function words and the scorer picks `de`
-                pool = build_candidates(kind, cand_words, limit=n_cand)
+                subj = pre[-1] if pre else None
+                pool = build_candidates(kind, cand_words, limit=n_cand,
+                                        subject=subj)
                 cids, cws = [], []
                 for w in pool:
                     t = nl2id.get(w.lower())
@@ -283,7 +295,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
             pre, suf, _ = r
             t_exp = nl2id.get(exp.lower())
             if t_exp is not None:
-                pool = build_candidates(r[2], cand_words, limit=40)
+                pool = build_candidates(r[2], cand_words, limit=40,
+                                        subject=(r[0][-1] if r[0] else None))
                 distract = [nl2id[w.lower()] for w in pool
                             if w.lower() in nl2id and
                             nl2id[w.lower()] != t_exp][:20]

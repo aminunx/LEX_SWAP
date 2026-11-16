@@ -116,7 +116,7 @@ def reorder(text):
     return None
 
 
-def build_candidates(slot_kind, lexicon_nl_words, limit=400):
+def build_candidates(slot_kind, lexicon_nl_words, limit=400, subject=None):
     """Restrict the candidate set by the category the slot wants.
 
     Scoring every word in a 24,000-entry lexicon per prompt is wasteful and
@@ -129,11 +129,24 @@ def build_candidates(slot_kind, lexicon_nl_words, limit=400):
             "van", "in", "op", "aan", "met", "voor", "naar", "om", "bij",
             "als", "of", "ook", "niet", "nog", "maar", "zijn", "er", "ze",
             "we", "je", "ik", "hij", "wij", "men", "u", "me", "mij"}
+    # Dutch and English do not divide the verb forms the same way: English
+    # `read` covers present and past, so ' read' outscores ' reads' and the
+    # Dutch infinitive `lezen` wins a slot Dutch grammar reserves for `leest`.
+    # Fixing it in the encoder is not enough - the CANDIDATE SET has to respect
+    # the agreement too.
+    from .agreement_nl import NON_THIRD
+    third = subject is not None and subject.lower() not in NON_THIRD
     out = []
     for word in lexicon_nl_words:
         lw = word.strip().lower()
         if len(lw) < 2 or not lw.isalpha() or lw in STOP:
             continue
+        if slot_kind == "verb" and subject is not None:
+            # finite verb: third singular ends in -t, plural/first in -en
+            if third and not lw.endswith("t"):
+                continue
+            if not third and lw.endswith("t"):
+                continue
         if slot_kind == "participle":
             if lw.startswith("ge") or lw.endswith(("en", "d", "t")):
                 out.append(word)
