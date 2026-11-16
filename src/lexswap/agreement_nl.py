@@ -128,3 +128,51 @@ def english_form(dutch_verb, prev_word):
     if p in NON_THIRD:
         return base
     return third      # a bare noun subject is third person singular
+
+
+# ----------------------------------------------------------------------
+# From dumping all 50 templates.
+#
+# PRONOUN_FIX: `zij` is she or they. The verb agreement already treats it as
+# third singular, but the pronoun itself still rendered as `they`, so the
+# templates read "They has read the book" and "He says that they sings" -
+# ungrammatical English produced by my own half-applied fix. Resolving both
+# halves the same way is the point: a consistent wrong guess beats an
+# inconsistent one, because the model can at least parse it.
+PRONOUN_FIX = {"zij": "she", "ze": "she"}
+
+# MISSING: words that appeared untranslated in the templates, plus two whose
+# dictionary sense was wrong for the context.
+MISSING_WORDS = {
+    "toen": "then",
+    "vorige": "previous",
+    "week": "week",
+    "vanmorgen": "morning",
+    "vanmiddag": "afternoon",
+    "vanavond": "evening",
+    "straks": "soon",
+    "lied": "song",
+    "bal": "ball",
+    "krant": "newspaper",
+    "deur": "door",
+    "weg": "away",        # the dictionary gave `road`; here it is `away`
+    "morgen": "tomorrow",  # the dictionary gave `morning`
+    "gisteren": "yesterday",
+    "vandaag": "today",
+    "nu": "now",
+    "al": "already",
+    "nog": "yet",
+    "niets": "nothing",
+    "iets": "something",
+    "geld": "money",
+    "huis": "house",
+    "auto": "car",
+    "film": "film",
+    "trein": "train",
+    "bed": "bed",
+    "werk": "work",
+    "ziek": "ill",
+    "aardig": "kind",
+    "donker": "dark",
+    "thuis": "home",
+}

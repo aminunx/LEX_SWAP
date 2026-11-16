@@ -43,6 +43,9 @@ SUBORDINATORS = {
 }
 PERFECT_AUX = {"heb", "hebt", "heeft", "hebben", "had", "hadden",
                "ben", "bent", "is", "zijn", "was", "waren"}
+# modals that take `to` in English - want, need, try
+MODALS_WITH_TO = {"wil", "wilt", "willen", "hoop", "hoopt", "hopen",
+                  "probeer", "probeert", "proberen", "moet", "moeten"}
 MODALS = {"wil", "wilt", "willen", "kan", "kunt", "kunnen", "moet",
           "moeten", "zal", "zult", "zullen", "mag", "mogen", "ga", "gaat",
           "gaan", "kon", "wou", "zou", "zouden"}
@@ -221,7 +224,13 @@ def reorder(text):
     #   Hij wil je morgen ___   ->  Hij wil te ___ je morgen
     for i, x in enumerate(low):
         if x in MODALS and i + 1 < len(w):
-            return (w[:i + 1] + [TO_INF], w[i + 1:], "infinitive")
+            # DEFECT 1: `to` belongs after want/need/try only. After
+            # can/will/may it produced "They can to sing", and six templates
+            # were ungrammatical before the scorer ever saw a candidate.
+            head = w[:i + 1] + ([TO_INF] if x in MODALS_WITH_TO else [])
+            # DEFECT 3: adverbials were moved to the end in R2b but not here,
+            # leaving "wants to write morning the letter".
+            return (head, _tail_adverbials_last(w[i + 1:]), "infinitive")
 
     # R4 - inversion after a fronted element.
     #   Gisteren ging ik naar de ___   ->  Gisteren ik ging naar de ___

@@ -60,7 +60,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     ORIG_IDS = {p["id"] for p in NATURAL_NL}
     from src.lexswap.reassemble import render as render_words
     from src.lexswap.syntax_nl import build_candidates, reorder
-    from src.lexswap.agreement_nl import (PARTICIPLES, SEPARABLE,
+    from src.lexswap.agreement_nl import (MISSING_WORDS, PARTICIPLES,
+                                          PRONOUN_FIX, SEPARABLE,
                                           english_form)
 
     dev = "cuda" if torch.cuda.is_available() else "cpu"
@@ -99,6 +100,22 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         d = id2.get(ids[0])
         return d.strip() if d else None
     print("  lexicon {} decode ids, {} mid forms".format(len(id2), len(mid)))
+    added = 0
+    # hand-made overrides go in FIRST so they beat the dictionary entry
+    for nl_w, en_w in list(PRONOUN_FIX.items()) + list(MISSING_WORDS.items()):
+        tk = tok.encode(" " + en_w, add_special_tokens=False)
+        if len(tk) == 1:
+            mid[" " + nl_w] = tk[0]
+            mid[" " + nl_w.capitalize()] = tk[0]
+            id2[tk[0]] = " " + nl_w
+            ini = tok.encode(en_w[0].upper() + en_w[1:],
+                             add_special_tokens=False)
+            if len(ini) == 1:
+                init[nl_w.capitalize()] = ini[0]
+                init[nl_w] = ini[0]
+                id2[ini[0]] = nl_w.capitalize()
+            added += 1
+    print("  + {} hand overrides (pronoun sense, missing words)".format(added))
     added = 0
     for extra in (PARTICIPLES, SEPARABLE):
         for nl_w, en_w in extra.items():
