@@ -58,6 +58,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     from src.lexswap.natural_nl import NATURAL_NL
     from src.lexswap.reassemble import render as render_words
     from src.lexswap.syntax_nl import build_candidates, reorder
+    from src.lexswap.agreement_nl import (PARTICIPLES, SEPARABLE,
+                                          english_form)
 
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     tok = AutoTokenizer.from_pretrained(model_id)
@@ -95,6 +97,15 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         d = id2.get(ids[0])
         return d.strip() if d else None
     print("  lexicon {} decode ids, {} mid forms".format(len(id2), len(mid)))
+    added = 0
+    for extra in (PARTICIPLES, SEPARABLE):
+        for nl_w, en_w in extra.items():
+            t = tok.encode(" " + en_w, add_special_tokens=False)
+            if len(t) == 1:
+                mid.setdefault(" " + nl_w, t[0])
+                id2.setdefault(t[0], " " + nl_w)
+                added += 1
+    print("  + {} participle/separable forms, for REACHABILITY".format(added))
 
     def enc_words(words, first=True):
         """`first=False` for a mid-sentence fragment.
@@ -106,6 +117,12 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         """
         ids = []
         for k, w in enumerate(words):
+            agreed = english_form(w, words[k - 1] if k else None)
+            if agreed is not None:
+                t = tok.encode(" " + agreed, add_special_tokens=False)
+                if len(t) == 1:
+                    ids.append(t[0])
+                    continue
             if k == 0 and first:
                 got = (init.get(w) or init.get(w.lower()) or
                        mid.get(" " + w) or mid.get(" " + w.lower()))
