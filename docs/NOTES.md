@@ -309,3 +309,71 @@ It is not: this `key` is the continuation piece of `monkey`, and rendering it as
 So `continuation_piece` residual is not a shortfall to be driven to zero. Part
 of the remaining 4% is the metric correctly declining to do something harmful,
 and a run that reported 100% purity would be reporting a bug.
+
+## 2026-11-16 · v10: the lexicon is complete by the word criterion
+
+```
+output purity   0.956
+rendered        154/158  (97.5%)
+not rendered      4      (2.5%)  - ALL continuation_piece
+whole_word_no_entry       0
+whole_word_entry_exists   0
+lexicon         41,883 decode entries, exported to lexicon_nl.json
+```
+
+**Both fixable buckets are zero.** Every whole word the model generates has a
+Dutch rendering. The residual is the metric correctly refusing to translate
+mid-word pieces, which was established as the right behaviour before the number
+arrived.
+
+Fluent output:
+
+```
+Rood groen en         ->  blauw zijn drie kleuren van licht
+De kleur van gras is  ->  groen. De kleur van een auto is
+De man en de          ->  vrouw zijn in de zelfde kamer
+De hond en de         ->  kat zijn spelen met een bal
+```
+
+## 2026-11-16 · A failure of a different KIND, visible only in the text
+
+```
+Het boek is op de  ->  tafel. De boek is op de tafel
+                              ^^ should be `Het boek`
+```
+
+Dutch has two definite articles chosen by noun gender: `de` for common, `het`
+for neuter. English has one. **A token-by-token map cannot choose, because the
+information needed is in the NEXT word, not in the token being rendered.**
+
+Everything fixed until now was a property of the mapping **tables** -
+collisions, missing entries, fragments, casing. This is a property of the
+**decoding procedure**: rendering one token at a time is structurally unable to
+express the rule, no matter how good the lexicon becomes.
+
+So the fix is not more lexicon. It is a one-token lookahead in decode, which is
+a change in *kind* and the smallest one that can state the rule at all.
+
+> **Rule for the methodology:** when a residual error cannot be removed by any
+> entry in the table, the table is not the thing that is wrong. Ask what the
+> procedure cannot express.
+
+Limit recorded honestly: `HET_NOUNS` is hand-built and not exhaustive - Dutch
+gender is not predictable from form, and a complete list needs a real Dutch
+lexical database. So the article is corrected where the noun is known and `de`
+remains the fallback, being the more common article and the better default.
+
+## 2026-11-16 · MUSE returns inflected forms, not lemmas
+
+`De kleur van melk is gele` - predicative adjectives are uninflected in Dutch,
+so `geel` is right and `gele` is wrong. The dictionary gave the inflected form.
+
+Fixed by hand entries, which already take priority over the dictionary. Worth
+noting as a property of the resource: **a bilingual word list is not a lemma
+list**, and for predicative positions that difference is visible in the output.
+
+## 2026-11-16 · The third error is not fixable here
+
+`kat zijn spelen met een bal` - two verbs in sequence, from word-for-word
+mapping of a compound tense. This belongs to word order and morphology, and no
+dictionary or lookahead addresses it. Recorded as a limit, not queued as a fix.
