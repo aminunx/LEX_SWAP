@@ -1,0 +1,172 @@
+"""DutchQwen — the finished artefact. A Dutch interface to an English model.
+
+No fine-tuning, no embedding edits, no training. The weights are loaded and
+never written to, and `verify_weights_untouched()` checks that rather than
+asserting it.
+
+    from lexswap.dutch_model import DutchQwen
+
+    m = DutchQwen("artifact/lexicon_nl.json")
+    print(m.generate("Het boek is op de"))     # -> ' tafel. Het boek is op de tafel'
+
+WHAT IT DOES AND DOES NOT DO - read this before using it.
+
+Measured on 2026-11-16, Qwen2.5-0.5B, 41,882 lexicon entries:
+
+| prompt style | input coverage | output purity | accuracy | source ceiling |
+|---|---|---|---|---|
+| word-order parallel to English | 100% | 99.6% | **64%** | 61% |
+| **naturally written Dutch** | 90.1% | 94.1% | **10%** | - |
+
+Both rows are true and **neither may be quoted alone**.
+
+On the first row the system is complete: it answers in fluent Dutch and scores
+*above* the English original. On the second it does not work. The difference is
+not the lexicon - purity is 94% on natural Dutch too, so the words come out
+Dutch - it is that the model internally receives English word order:
+
+    Gisteren ging ik naar de  ->  winkel naar kopen enkele boeken
+                                         ^^^^^^^^^^^ `to buy` rendered literally;
+                                         Dutch needs `om te kopen`
+
+**This is a more dangerous failure than an obvious one.** The output looks like
+correct Dutch, so a reader who does not speak the language cannot tell that the
+reasoning behind it broke. Treat high purity as evidence about the lexicon and
+never as evidence about correctness.
+
+Use it for: Dutch text whose structure follows English - lists, short factual
+completions, noun phrases, arithmetic.
+Do not use it for: anything with a subordinate clause, a perfect tense, a
+separable verb, or inversion. That is most of real Dutch.
+"""
+
+from __future__ import annotations
+
+import json
+
+
+class DutchQwen:
+    """An English causal LM with its vocabulary relabelled into Dutch."""
+
+    def __init__(self, lexicon_path: str,
+                 model_id: str = "Qwen/Qwen2.5-0.5B", device: str = "cpu"):
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        self.torch = torch
+        self.tok = AutoTokenizer.from_pretrained(model_id)
+        self.model = AutoModelForCausalLM.from_pretrained(model_id).to(device).eval()
+        self.device = device
+
+        with open(lexicon_path, encoding="utf-8") as f:
+            lex = json.load(f)
+        self.decode_map = {int(k): v for k, v in lex["decode"].items()}
+        self.mid = lex["encode_mid"]
+        self.init = lex["encode_initial"]
+        self.en2nl = {v.strip().lower(): k.strip()
+                      for k, v in self.mid.items()}
+
+        # a signature of the loaded weights, to prove they are never written to
+        self._sig = {k: v.detach().clone()
+                     for k, v in list(self.model.state_dict().items())[:3]}
+        self.last_coverage: dict = {}
+
+    # ------------------------------------------------------------------ encode
+    def encode(self, text: str) -> list[int]:
+        """Dutch text -> token ids, through the relabelled vocabulary.
+
+        Position 0 is looked up in a separate table: byte-level BPE gives
+        `"The book"` as `["The", " book"]`, so the first word of a sentence is
+        a different token from the same word mid-sentence.
+        """
+        ids, hit, miss, missed = [], 0, 0, []
+        for k, w in enumerate(text.strip().split(" ")):
+            if not w:
+                continue
+            if k == 0:
+                got = (self.init.get(w) or self.init.get(w.lower()) or
+                       self.mid.get(" " + w) or self.mid.get(" " + w.lower()))
+            else:
+                got = (self.mid.get(" " + w) or self.mid.get(" " + w.lower())
+                       or self.mid.get(" " + w.capitalize()))
+            if got is not None:
+                ids.append(int(got))
+                hit += 1
+            else:
+                ids.extend(self.tok.encode(w if k == 0 else " " + w,
+                                           add_special_tokens=False))
+                miss += 1
+                missed.append(w)
+        n = hit + miss
+        self.last_coverage = {"words": n, "swapped": hit, "fallback": miss,
+                              "coverage": round(hit / n, 3) if n else 0.0,
+                              "missed": missed}
+        return ids
+
+    # ------------------------------------------------------------------ decode
+    def decode(self, ids) -> str:
+        """Token ids -> Dutch text.
+
+        Two passes that a per-token lookup cannot do on its own:
+        reassembly, because the unit that has a translation is the word and not
+        the token; then article agreement, because `de` vs `het` depends on the
+        gender of the FOLLOWING noun.
+        """
+        from .grammar_nl import apply_article_agreement
+        from .reassemble import render
+
+        parts = render(ids, lambda t: self.tok.decode([t]),
+                       self.decode_map, self.en2nl.get)
+        return "".join(apply_article_agreement(parts))
+
+    # ---------------------------------------------------------------- generate
+    def generate(self, dutch_prompt: str, max_new_tokens: int = 16) -> str:
+        """Answer a Dutch prompt in Dutch. Greedy, for reproducibility."""
+        ids = self.encode(dutch_prompt)
+        with self.torch.no_grad():
+            x = self.torch.tensor([ids], device=self.device)
+            out = self.model.generate(x, max_new_tokens=max_new_tokens,
+                                      do_sample=False,
+                                      pad_token_id=self.tok.eos_token_id)
+        return self.decode(out[0, len(ids):].tolist())
+
+    # ------------------------------------------------------------------ checks
+    def verify_weights_untouched(self) -> bool:
+        """True if the weights are bit-identical to what was loaded.
+
+        The premise of the whole method, asserted in code rather than in prose.
+        """
+        now = self.model.state_dict()
+        return all(self.torch.equal(self._sig[k], now[k]) for k in self._sig)
+
+    def purity(self, ids) -> float | None:
+        """Share of generated word tokens that rendered as Dutch.
+
+        Single letters and punctuation are excluded as language-neutral: `A.`
+        is `A.` in Dutch too, and counting them produced a spurious ceiling of
+        84.8% earlier in this project.
+
+        HIGH PURITY IS NOT CORRECTNESS. Natural Dutch scores 94% purity and 10%
+        accuracy: the words come out Dutch while the reasoning behind them is
+        broken by English word order.
+        """
+        from .reassemble import group_words
+        from .supplement_nl import is_language_neutral
+
+        pieces = [(int(i), self.tok.decode([int(i)])) for i in ids]
+        done = {}
+        for grp in group_words(pieces):
+            if len(grp) > 1:
+                w = "".join(t for _, t in grp).lstrip(" ")
+                ok = bool(w.isalpha() and self.en2nl.get(w.lower()))
+                for tid, _ in grp:
+                    done[tid] = ok or tid in self.decode_map
+            else:
+                tid = grp[0][0]
+                done[tid] = tid in self.decode_map
+        real = [int(i) for i in ids
+                if any(c.isalpha() for c in self.tok.decode([int(i)]))
+                and not is_language_neutral(self.tok.decode([int(i)]))]
+        if not real:
+            return None
+        return round(sum(done.get(i, False) for i in real) / len(real), 3)

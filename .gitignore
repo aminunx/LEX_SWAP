@@ -3,7 +3,7 @@ __pycache__/
 .venv/
 venv/
 .ipynb_checkpoints/
-out/
+# out/ is produced inside Modal; the artefact is committed under artifact/
 *.json.gz
 .DS_Store
 Thumbs.db

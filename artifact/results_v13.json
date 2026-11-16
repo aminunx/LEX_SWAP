@@ -1,0 +1,3075 @@
+{
+  "model": "Qwen/Qwen2.5-0.5B",
+  "dict_headwords": 82167,
+  "lexicon_ids": 41882,
+  "vocab_whole_words": 41495,
+  "dict_matched": 27955,
+  "stem_suffix": 1861,
+  "no_entry": 11363,
+  "coverage": 1.0,
+  "ids_match": 34,
+  "accuracy": 0.639,
+  "ceiling": 0.611,
+  "output_purity": 0.996,
+  "buckets": {
+    "continuation_piece": 1,
+    "whole_word_no_entry": 0,
+    "whole_word_entry_exists": 0
+  },
+  "examples": {
+    "continuation_piece": [
+      "fl"
+    ],
+    "whole_word_no_entry": [],
+    "whole_word_entry_exists": []
+  },
+  "generated_tokens": 158,
+  "not_rendered": 1,
+  "weights_unchanged": true,
+  "rows": [
+    {
+      "id": 1,
+      "nl": "Het boek is op de",
+      "out": "tafel. Het boek is op de tafel",
+      "expected": "tafel",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 2,
+      "nl": "Het tegenovergestelde van groot is",
+      "out": "____\nEen. klein\nB.",
+      "expected": "klein",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 3,
+      "nl": "Het tegenovergestelde van koud is",
+      "out": "____\nEen. Heet\nB.",
+      "expected": "heet",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 4,
+      "nl": "Het tegenovergestelde van nieuw is",
+      "out": "____\nEen. oud\nB.",
+      "expected": "oud",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 5,
+      "nl": "Het tegenovergestelde van zwart is",
+      "out": "____.\nEen. Wit\nB.",
+      "expected": "wit",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 6,
+      "nl": "Rood groen en",
+      "out": "blauw zijn drie kleuren van licht. Als",
+      "expected": "blauw",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 7,
+      "nl": "De kleur van gras is",
+      "out": "groen. De kleur van een auto is",
+      "expected": "groen",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 8,
+      "nl": "De kleur van melk is",
+      "out": "geel. De kleur van melk is geel",
+      "expected": "wit",
+      "hit": false,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 9,
+      "nl": "De man en de",
+      "out": "vrouw zijn in de zelfde kamer. De",
+      "expected": "vrouw",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 10,
+      "nl": "De hond en de",
+      "out": "kat zijn spelen met een bal. De",
+      "expected": "kat",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 11,
+      "nl": "Brood en",
+      "out": "Kaneel\n- 1/2",
+      "expected": "melk",
+      "hit": false,
+      "ids_match": false,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 12,
+      "nl": "De man leest een",
+      "out": "boek voor 2 openingstijden ieder dag.",
+      "expected": "boek",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 13,
+      "nl": "Het tegenovergestelde van lang is",
+      "out": "____\nEen. 0\nB",
+      "expected": "kort",
+      "hit": false,
+      "ids_match": true,
+      "purity": null,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 14,
+      "nl": "Het tegenovergestelde van hoog is",
+      "out": "____\nEen. Laag\nB.",
+      "expected": "laag",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 15,
+      "nl": "Het tegenovergestelde van snel is",
+      "out": "____\nEen. langzaam\nB.",
+      "expected": "langzaam",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 16,
+      "nl": "Het tegenovergestelde van sterk is",
+      "out": "____\nEen. Zwak\nB.",
+      "expected": "zwak",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 17,
+      "nl": "Het tegenovergestelde van vol is",
+      "out": "____\nEen. helft\nB.",
+      "expected": "leeg",
+      "hit": false,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 18,
+      "nl": "Het tegenovergestelde van jong is",
+      "out": "____\nEen. oud\nB.",
+      "expected": "oud",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 19,
+      "nl": "Het tegenovergestelde van nat is",
+      "out": "____\nEen. droog\nB.",
+      "expected": "droog",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 20,
+      "nl": "Het tegenovergestelde van dag is",
+      "out": "____\nEen. nacht\nB.",
+      "expected": "nacht",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 21,
+      "nl": "De kleur van sneeuw is",
+      "out": "wit. De kleur van de sneeuwfl",
+      "expected": "wit",
+      "hit": true,
+      "ids_match": true,
+      "purity": 0.857,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 22,
+      "nl": "De kleur van goud is",
+      "out": "geel, en de kleur van zilver is",
+      "expected": "geel",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 23,
+      "nl": "De kleur van vuur is",
+      "out": "gerelateerd naar de temperatuur van het vuur.",
+      "expected": "rood",
+      "hit": false,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 24,
+      "nl": "De kleur van de zee is",
+      "out": "een mooi en unique ding. Het is",
+      "expected": "blauw",
+      "hit": false,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 25,
+      "nl": "Een twee drie vier vijf",
+      "out": "zes zeven acht negen tien eleven twelve dertien",
+      "expected": "zes",
+      "hit": true,
+      "ids_match": false,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 26,
+      "nl": "Zes zeven acht",
+      "out": "negen tien. Wat is de sum van",
+      "expected": "negen",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 27,
+      "nl": "Het paard en de",
+      "out": "donkey zijn beide ridend op een karretje",
+      "expected": "koe",
+      "hit": false,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 28,
+      "nl": "De vogel en de",
+      "out": "boom zijn in een staat van ________",
+      "expected": "vis",
+      "hit": false,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 29,
+      "nl": "Zout en",
+      "out": "azijn zijn gebruikt naar maken een salade.",
+      "expected": "peper",
+      "hit": false,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 30,
+      "nl": "De zon en de",
+      "out": "maan zijn beide hemels lijken. Welke van",
+      "expected": "maan",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 31,
+      "nl": "Winter en",
+      "out": "Voorjaar\n\nWinter en Voorjaar\n\nDe winter",
+      "expected": "zomer",
+      "hit": false,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 32,
+      "nl": "De sleutel is in de",
+      "out": "naam. Het woord “ziel”",
+      "expected": "deur",
+      "hit": false,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 33,
+      "nl": "Het water in de rivier is",
+      "out": "stromend bij een tarief van 10",
+      "expected": "koud",
+      "hit": false,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 34,
+      "nl": "Het vuur is zeer",
+      "out": "ernstig, en het vuur departement is ______",
+      "expected": "heet",
+      "hit": false,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 35,
+      "nl": "De berg is zeer",
+      "out": "hoog en de lucht is zeer dun.",
+      "expected": "hoog",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    },
+    {
+      "id": 36,
+      "nl": "Goud is zeer",
+      "out": "zacht en is niet zeer duurzaam. Het",
+      "expected": "duur",
+      "hit": true,
+      "ids_match": true,
+      "purity": 1.0,
+      "coverage": 1.0,
+      "missed": []
+    }
+  ],
+  "natural_dutch": {
+    "accuracy": 0.1,
+    "coverage": 0.901,
+    "purity": 0.941,
+    "rows": [
+      {
+        "id": 1,
+        "nl": "Ik weet dat hij het boek",
+        "out": "is een goed boek. Hij weet de",
+        "expected": "leest",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 1.0,
+        "why": "verb-final subordinate clause",
+        "missed": []
+      },
+      {
+        "id": 2,
+        "nl": "Zij zei dat het huis groot",
+        "out": "genoeg naar huis 100 mensen",
+        "expected": "is",
+        "hit": true,
+        "purity": 1.0,
+        "coverage": 1.0,
+        "why": "verb-final subordinate clause",
+        "missed": []
+      },
+      {
+        "id": 3,
+        "nl": "Omdat het regende bleven wij",
+        "out": "hebben naar zijn voorzichtig niet naar krijgen ook",
+        "expected": "thuis",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 0.6,
+        "why": "inversion after a subordinate clause",
+        "missed": [
+          "regende",
+          "bleven"
+        ]
+      },
+      {
+        "id": 4,
+        "nl": "Als je morgen komt zal ik je",
+        "out": "dag zal zijn een succes of een falen",
+        "expected": "helpen",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 1.0,
+        "why": "inversion plus final infinitive",
+        "missed": []
+      },
+      {
+        "id": 5,
+        "nl": "Gisteren ging ik naar de",
+        "out": "winkel naar kopen enkele boodschappen. Ik kocht",
+        "expected": "stad",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 1.0,
+        "why": "inversion after a fronted adverb",
+        "missed": []
+      },
+      {
+        "id": 6,
+        "nl": "De man die daar woont is",
+        "out": "een man van de wereld, en hij",
+        "expected": "oud",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 0.833,
+        "why": "relative clause with verb final",
+        "missed": [
+          "woont"
+        ]
+      },
+      {
+        "id": 7,
+        "nl": "Ik heb de brief nog niet",
+        "out": "in de correcte positie. Ik hebben geprobeerd",
+        "expected": "gelezen",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 1.0,
+        "why": "perfect tense, participle last",
+        "missed": []
+      },
+      {
+        "id": 8,
+        "nl": "Hij wil je morgen",
+        "out": "koffie. Hij wil je middag koffie.",
+        "expected": "opbellen",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 1.0,
+        "why": "separable verb at the end",
+        "missed": []
+      },
+      {
+        "id": 9,
+        "nl": "Wij hebben gisteren een film",
+        "out": "belde “De groot Gatsby” en",
+        "expected": "gezien",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 1.0,
+        "why": "perfect tense, participle last",
+        "missed": []
+      },
+      {
+        "id": 10,
+        "nl": "Het kind dat daar speelt is",
+        "out": "het kind dat is de meest belangrijke naar",
+        "expected": "klein",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 1.0,
+        "why": "relative clause with verb final",
+        "missed": []
+      },
+      {
+        "id": 11,
+        "nl": "Nadat hij was gekomen gingen wij",
+        "out": "et ik niet van ik het nu wel",
+        "expected": "weg",
+        "hit": false,
+        "purity": 0.125,
+        "coverage": 0.5,
+        "why": "subordinate clause then inversion",
+        "missed": [
+          "Nadat",
+          "gekomen",
+          "gingen"
+        ]
+      },
+      {
+        "id": 12,
+        "nl": "Zij heeft het boek al",
+        "out": ".（改为否定句） Het heeft",
+        "expected": "gelezen",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 1.0,
+        "why": "perfect tense, participle last",
+        "missed": []
+      },
+      {
+        "id": 13,
+        "nl": "Morgen ga ik naar school omdat ik het",
+        "out": "bus. Een. krijgen B. krijgen",
+        "expected": "moet",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 0.875,
+        "why": "inversion plus verb-final clause",
+        "missed": [
+          "ga"
+        ]
+      },
+      {
+        "id": 14,
+        "nl": "Hoewel het koud was gingen wij",
+        "out": "had naar blijven bij thuis.____",
+        "expected": "zwemmen",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 0.833,
+        "why": "concessive clause then inversion",
+        "missed": [
+          "gingen"
+        ]
+      },
+      {
+        "id": 15,
+        "nl": "De vrouw aan wie ik het boek",
+        "out": "is een vriendin van mijne. Een.",
+        "expected": "gaf",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 1.0,
+        "why": "prepositional relative, verb final",
+        "missed": []
+      },
+      {
+        "id": 16,
+        "nl": "Ik denk dat zij morgen niet",
+        "out": "alleen de mensen maar ook de dingen dat",
+        "expected": "komt",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 1.0,
+        "why": "verb-final with negation",
+        "missed": []
+      },
+      {
+        "id": 17,
+        "nl": "Toen wij aankwamen was het al",
+        "out": "opgericht en nou-established, maar nu wij",
+        "expected": "donker",
+        "hit": false,
+        "purity": 0.857,
+        "coverage": 0.667,
+        "why": "temporal clause then inversion",
+        "missed": [
+          "Toen",
+          "aankwamen"
+        ]
+      },
+      {
+        "id": 18,
+        "nl": "Hij heeft mij gisteren niets",
+        "out": "maar een ________.\nEen. droom",
+        "expected": "gezegd",
+        "hit": false,
+        "purity": 1.0,
+        "coverage": 1.0,
+        "why": "perfect tense, participle last",
+        "missed": []
+      },
+      {
+        "id": 19,
+        "nl": "Wat hij zei kon ik niet",
+        "out": "begrijpen. Ik don't weten wat hij",
+        "expected": "horen",
+        "hit": false,
+        "purity": 0.833,
+        "coverage": 1.0,
+        "why": "fronted object clause then inversion",
+        "missed": []
+      },
+      {
+        "id": 20,
+        "nl": "Zij wonen in een huis dat heel",
+        "out": "was een kleine bit oud, maar het",
+        "expected": "oud",
+        "hit": true,
+        "purity": 1.0,
+        "coverage": 0.714,
+        "why": "relative clause, adjective final",
+        "missed": [
+          "wonen",
+          "heel"
+        ]
+      }
+    ]
+  },
+  "top_gaps": [
+    [
+      270,
+      "th"
+    ],
+    [
+      304,
+      "in"
+    ],
+    [
+      311,
+      "to"
+    ],
+    [
+      312,
+      "re"
+    ],
+    [
+      315,
+      "of"
+    ],
+    [
+      357,
+      "st"
+    ],
+    [
+      374,
+      "is"
+    ],
+    [
+      387,
+      "be"
+    ],
+    [
+      389,
+      "on"
+    ],
+    [
+      409,
+      "de"
+    ],
+    [
+      420,
+      "wh"
+    ],
+    [
+      421,
+      "if"
+    ],
+    [
+      432,
+      "it"
+    ],
+    [
+      438,
+      "as"
+    ],
+    [
+      452,
+      "al"
+    ],
+    [
+      458,
+      "an"
+    ],
+    [
+      476,
+      "or"
+    ],
+    [
+      489,
+      "tr"
+    ],
+    [
+      505,
+      "ex"
+    ],
+    [
+      511,
+      "se"
+    ],
+    [
+      512,
+      "le"
+    ],
+    [
+      518,
+      "at"
+    ],
+    [
+      521,
+      "ch"
+    ],
+    [
+      548,
+      "pr"
+    ],
+    [
+      553,
+      "by"
+    ],
+    [
+      557,
+      "sh"
+    ],
+    [
+      566,
+      "he"
+    ],
+    [
+      582,
+      "we"
+    ],
+    [
+      601,
+      "us"
+    ],
+    [
+      625,
+      "pl"
+    ],
+    [
+      650,
+      "un"
+    ],
+    [
+      653,
+      "do"
+    ],
+    [
+      655,
+      "el"
+    ],
+    [
+      662,
+      "en"
+    ],
+    [
+      663,
+      "Th"
+    ],
+    [
+      668,
+      "ab"
+    ],
+    [
+      683,
+      "cont"
+    ],
+    [
+      705,
+      "up"
+    ],
+    [
+      708,
+      "bo"
+    ],
+    [
+      728,
+      "go"
+    ],
+    [
+      732,
+      "im"
+    ],
+    [
+      752,
+      "me"
+    ],
+    [
+      758,
+      "In"
+    ],
+    [
+      770,
+      "else"
+    ],
+    [
+      773,
+      "so"
+    ],
+    [
+      775,
+      "lo"
+    ],
+    [
+      794,
+      "St"
+    ],
+    [
+      796,
+      "ar"
+    ],
+    [
+      822,
+      "sa"
+    ],
+    [
+      834,
+      "ne"
+    ],
+    [
+      847,
+      "my"
+    ],
+    [
+      877,
+      "id"
+    ],
+    [
+      898,
+      "li"
+    ],
+    [
+      902,
+      "no"
+    ],
+    [
+      910,
+      "Ch"
+    ],
+    [
+      913,
+      "su"
+    ],
+    [
+      922,
+      "qu"
+    ],
+    [
+      926,
+      "ro"
+    ],
+    [
+      933,
+      "ag"
+    ],
+    [
+      976,
+      "em"
+    ],
+    [
+      978,
+      "sp"
+    ],
+    [
+      993,
+      "ad"
+    ],
+    [
+      1012,
+      "been"
+    ],
+    [
+      1013,
+      "te"
+    ],
+    [
+      1031,
+      "bu"
+    ],
+    [
+      1032,
+      "Re"
+    ],
+    [
+      1051,
+      "pe"
+    ],
+    [
+      1062,
+      "co"
+    ],
+    [
+      1079,
+      "am"
+    ],
+    [
+      1081,
+      "gr"
+    ],
+    [
+      1084,
+      "It"
+    ],
+    [
+      1091,
+      "than"
+    ],
+    [
+      1119,
+      "into"
+    ],
+    [
+      1136,
+      "sc"
+    ],
+    [
+      1148,
+      "kn"
+    ],
+    [
+      1152,
+      "fe"
+    ],
+    [
+      1163,
+      "Tr"
+    ],
+    [
+      1179,
+      "op"
+    ],
+    [
+      1185,
+      "cl"
+    ],
+    [
+      1187,
+      "la"
+    ],
+    [
+      1205,
+      "We"
+    ],
+    [
+      1217,
+      "reg"
+    ],
+    [
+      1230,
+      "Un"
+    ],
+    [
+      1232,
+      "Wh"
+    ],
+    [
+      1258,
+      "jav"
+    ],
+    [
+      1260,
+      "He"
+    ],
+    [
+      1319,
+      "ph"
+    ],
+    [
+      1320,
+      "fl"
+    ],
+    [
+      1345,
+      "Se"
+    ],
+    [
+      1351,
+      "rel"
+    ],
+    [
+      1353,
+      "dr"
+    ],
+    [
+      1360,
+      "aw"
+    ],
+    [
+      1374,
+      "Ex"
+    ],
+    [
+      1396,
+      "dif"
+    ],
+    [
+      1411,
+      "br"
+    ],
+    [
+      1416,
+      "If"
+    ],
+    [
+      1417,
+      "Sh"
+    ],
+    [
+      1422,
+      "fr"
+    ],
+    [
+      1443,
+      "ap"
+    ],
+    [
+      1501,
+      "bl"
+    ],
+    [
+      1508,
+      "ob"
+    ],
+    [
+      1525,
+      "sm"
+    ],
+    [
+      1526,
+      "through"
+    ],
+    [
+      1527,
+      "An"
+    ],
+    [
+      1531,
+      "es"
+    ],
+    [
+      1560,
+      "cr"
+    ],
+    [
+      1578,
+      "ed"
+    ],
+    [
+      1581,
+      "De"
+    ],
+    [
+      1582,
+      "dist"
+    ],
+    [
+      1613,
+      "ac"
+    ],
+    [
+      1619,
+      "att"
+    ],
+    [
+      1634,
+      "As"
+    ],
+    [
+      1644,
+      "Ar"
+    ],
+    [
+      1660,
+      "being"
+    ],
+    [
+      1674,
+      "Al"
+    ],
+    [
+      1675,
+      "gu"
+    ],
+    [
+      1685,
+      "param"
+    ],
+    [
+      1739,
+      "sl"
+    ],
+    [
+      1798,
+      "includ"
+    ],
+    [
+      1801,
+      "href"
+    ],
+    [
+      1807,
+      "bool"
+    ],
+    [
+      1818,
+      "Pl"
+    ],
+    [
+      1822,
+      "av"
+    ],
+    [
+      1842,
+      "et"
+    ],
+    [
+      1846,
+      "those"
+    ],
+    [
+      1848,
+      "err"
+    ],
+    [
+      1853,
+      "di"
+    ],
+    [
+      1907,
+      "comple"
+    ],
+    [
+      1913,
+      "On"
+    ],
+    [
+      1962,
+      "ke"
+    ],
+    [
+      1964,
+      "IN"
+    ],
+    [
+      1967,
+      "Le"
+    ],
+    [
+      1976,
+      "contin"
+    ],
+    [
+      1980,
+      "className"
+    ],
+    [
+      2014,
+      "To"
+    ],
+    [
+      2021,
+      "sw"
+    ],
+    [
+      2030,
+      "und"
+    ],
+    [
+      2036,
+      "struct"
+    ],
+    [
+      2055,
+      "So"
+    ],
+    [
+      2059,
+      "provid"
+    ],
+    [
+      2093,
+      "Cont"
+    ],
+    [
+      2098,
+      "vis"
+    ],
+    [
+      2100,
+      "AN"
+    ],
+    [
+      2157,
+      "Me"
+    ],
+    [
+      2160,
+      "Is"
+    ],
+    [
+      2162,
+      "ca"
+    ],
+    [
+      2166,
+      "rece"
+    ],
+    [
+      2218,
+      "fa"
+    ],
+    [
+      2241,
+      "fore"
+    ],
+    [
+      2255,
+      "happ"
+    ],
+    [
+      2274,
+      "US"
+    ],
+    [
+      2281,
+      "incre"
+    ],
+    [
+      2294,
+      "coun"
+    ],
+    [
+      2308,
+      "No"
+    ],
+    [
+      2335,
+      "conf"
+    ],
+    [
+      2340,
+      "Pr"
+    ],
+    [
+      2350,
+      "Ph"
+    ],
+    [
+      2358,
+      "wom"
+    ],
+    [
+      2362,
+      "Im"
+    ],
+    [
+      2401,
+      "tot"
+    ],
+    [
+      2410,
+      "Ad"
+    ],
+    [
+      2411,
+      "At"
+    ],
+    [
+      2435,
+      "Cl"
+    ],
+    [
+      2441,
+      "another"
+    ],
+    [
+      2463,
+      "Sc"
+    ],
+    [
+      2477,
+      "non"
+    ],
+    [
+      2497,
+      "produ"
+    ],
+    [
+      2499,
+      "proble"
+    ],
+    [
+      2502,
+      "Bl"
+    ],
+    [
+      2516,
+      "Bo"
+    ],
+    [
+      2521,
+      "Or"
+    ],
+    [
+      2535,
+      "await"
+    ],
+    [
+      2551,
+      "email"
+    ],
+    [
+      2578,
+      "might"
+    ],
+    [
+      2595,
+      "np"
+    ],
+    [
+      2622,
+      "uint"
+    ],
+    [
+      2642,
+      "appe"
+    ],
+    [
+      2643,
+      "os"
+    ],
+    [
+      2655,
+      "Te"
+    ],
+    [
+      2714,
+      "er"
+    ],
+    [
+      2726,
+      "OR"
+    ],
+    [
+      2736,
+      "perform"
+    ],
+    [
+      2739,
+      "ver"
+    ],
+    [
+      2745,
+      "mult"
+    ],
+    [
+      2755,
+      "beh"
+    ],
+    [
+      2770,
+      "gl"
+    ],
+    [
+      2799,
+      "techn"
+    ],
+    [
+      2803,
+      "seem"
+    ],
+    [
+      2818,
+      "belie"
+    ],
+    [
+      2823,
+      "Be"
+    ],
+    [
+      2825,
+      "Gr"
+    ],
+    [
+      2846,
+      "distrib"
+    ],
+    [
+      2847,
+      "cur"
+    ],
+    [
+      2867,
+      "instance"
+    ],
+    [
+      2869,
+      "Fr"
+    ],
+    [
+      2871,
+      "javax"
+    ],
+    [
+      2915,
+      "func"
+    ],
+    [
+      2924,
+      "include"
+    ],
+    [
+      2925,
+      "En"
+    ],
+    [
+      2926,
+      "Dr"
+    ],
+    [
+      2927,
+      "db"
+    ],
+    [
+      2952,
+      "able"
+    ],
+    [
+      2984,
+      "appro"
+    ],
+    [
+      2988,
+      "Fl"
+    ],
+    [
+      2994,
+      "da"
+    ],
+    [
+      3008,
+      "OF"
+    ],
+    [
+      3017,
+      "My"
+    ],
+    [
+      3034,
+      "ID"
+    ],
+    [
+      3043,
+      "NS"
+    ],
+    [
+      3089,
+      "Sp"
+    ],
+    [
+      3112,
+      "wr"
+    ],
+    [
+      3130,
+      "lik"
+    ],
+    [
+      3138,
+      "Up"
+    ],
+    [
+      3143,
+      "near"
+    ],
+    [
+      3155,
+      "Do"
+    ],
+    [
+      3156,
+      "along"
+    ],
+    [
+      3171,
+      "doesn"
+    ],
+    [
+      3184,
+      "Reg"
+    ],
+    [
+      3193,
+      "po"
+    ],
+    [
+      3199,
+      "Ed"
+    ],
+    [
+      3201,
+      "dest"
+    ],
+    [
+      3206,
+      "btn"
+    ],
+    [
+      3207,
+      "didn"
+    ],
+    [
+      3216,
+      "By"
+    ],
+    [
+      3232,
+      "equ"
+    ],
+    [
+      3240,
+      "Br"
+    ],
+    [
+      3247,
+      "expl"
+    ],
+    [
+      3258,
+      "dat"
+    ],
+    [
+      3266,
+      "percent"
+    ],
+    [
+      3275,
+      "vi"
+    ],
+    [
+      3289,
+      "eff"
+    ],
+    [
+      3303,
+      "Am"
+    ],
+    [
+      3312,
+      "async"
+    ],
+    [
+      3354,
+      "polit"
+    ],
+    [
+      3360,
+      "Ste"
+    ],
+    [
+      3385,
+      "DE"
+    ],
+    [
+      3406,
+      "Qu"
+    ],
+    [
+      3410,
+      "provide"
+    ],
+    [
+      3424,
+      "IS"
+    ],
+    [
+      3425,
+      "whether"
+    ],
+    [
+      3438,
+      "exc"
+    ],
+    [
+      3455,
+      "employ"
+    ],
+    [
+      3457,
+      "fre"
+    ],
+    [
+      3459,
+      "complet"
+    ],
+    [
+      3524,
+      "ident"
+    ],
+    [
+      3529,
+      "conc"
+    ],
+    [
+      3537,
+      "happen"
+    ],
+    [
+      3539,
+      "Co"
+    ],
+    [
+      3566,
+      "prob"
+    ],
+    [
+      3582,
+      "typ"
+    ],
+    [
+      3595,
+      "redu"
+    ],
+    [
+      3596,
+      "RE"
+    ],
+    [
+      3603,
+      "indiv"
+    ],
+    [
+      3628,
+      "params"
+    ],
+    [
+      3637,
+      "ev"
+    ],
+    [
+      3657,
+      "impro"
+    ],
+    [
+      3680,
+      "Ab"
+    ],
+    [
+      3689,
+      "UI"
+    ],
+    [
+      3701,
+      "card"
+    ],
+    [
+      3730,
+      "doing"
+    ],
+    [
+      3761,
+      "ce"
+    ],
+    [
+      3771,
+      "pract"
+    ],
+    [
+      3774,
+      "unsigned"
+    ],
+    [
+      3815,
+      "il"
+    ],
+    [
+      3841,
+      "Fe"
+    ],
+    [
+      3845,
+      "du"
+    ],
+    [
+      3859,
+      "ax"
+    ],
+    [
+      3893,
+      "ge"
+    ],
+    [
+      3912,
+      "ey"
+    ],
+    [
+      3928,
+      "ST"
+    ],
+    [
+      3933,
+      "cou"
+    ],
+    [
+      3935,
+      "sizeof"
+    ],
+    [
+      3941,
+      "across"
+    ],
+    [
+      3953,
+      "particular"
+    ],
+    [
+      3963,
+      "decl"
+    ],
+    [
+      3984,
+      "El"
+    ],
+    [
+      3985,
+      "Us"
+    ],
+    [
+      4043,
+      "foreach"
+    ],
+    [
+      4045,
+      "elect"
+    ],
+    [
+      4053,
+      "larg"
+    ],
+    [
+      4063,
+      "EX"
+    ],
+    [
+      4069,
+      "vo"
+    ],
+    [
+      4087,
+      "ste"
+    ],
+    [
+      4092,
+      "according"
+    ],
+    [
+      4094,
+      "util"
+    ],
+    [
+      4097,
+      "associ"
+    ],
+    [
+      4099,
+      "wor"
+    ],
+    [
+      4100,
+      "printf"
+    ],
+    [
+      4105,
+      "activ"
+    ],
+    [
+      4113,
+      "anything"
+    ],
+    [
+      4131,
+      "sn"
+    ],
+    [
+      4151,
+      "vari"
+    ],
+    [
+      4155,
+      "ep"
+    ],
+    [
+      4157,
+      "cannot"
+    ],
+    [
+      4162,
+      "pred"
+    ],
+    [
+      4166,
+      "auth"
+    ],
+    [
+      4170,
+      "vot"
+    ],
+    [
+      4177,
+      "benef"
+    ],
+    [
+      4182,
+      "Ne"
+    ],
+    [
+      4184,
+      "neg"
+    ],
+    [
+      4187,
+      "cred"
+    ],
+    [
+      4200,
+      "respons"
+    ],
+    [
+      4221,
+      "among"
+    ],
+    [
+      4225,
+      "circ"
+    ],
+    [
+      4229,
+      "Ge"
+    ],
+    [
+      4232,
+      "req"
+    ],
+    [
+      4264,
+      "God"
+    ],
+    [
+      4294,
+      "agre"
+    ],
+    [
+      4317,
+      "na"
+    ],
+    [
+      4335,
+      "ur"
+    ],
+    [
+      4359,
+      "invol"
+    ],
+    [
+      4384,
+      "tw"
+    ],
+    [
+      4388,
+      "Sm"
+    ],
+    [
+      4392,
+      "Mr"
+    ],
+    [
+      4403,
+      "si"
+    ],
+    [
+      4408,
+      "indu"
+    ],
+    [
+      4410,
+      "pret"
+    ],
+    [
+      4434,
+      "TH"
+    ],
+    [
+      4436,
+      "isn"
+    ],
+    [
+      4441,
+      "necess"
+    ],
+    [
+      4443,
+      "um"
+    ],
+    [
+      4483,
+      "Mc"
+    ],
+    [
+      4492,
+      "Sw"
+    ],
+    [
+      4501,
+      "energ"
+    ],
+    [
+      4503,
+      "phot"
+    ],
+    [
+      4505,
+      "Europe"
+    ],
+    [
+      4510,
+      "py"
+    ],
+    [
+      4514,
+      "obt"
+    ],
+    [
+      4518,
+      "instead"
+    ],
+    [
+      4533,
+      "compet"
+    ],
+    [
+      4536,
+      "compan"
+    ],
+    [
+      4544,
+      "mo"
+    ],
+    [
+      4553,
+      "Cr"
+    ],
+    [
+      4570,
+      "Gu"
+    ],
+    [
+      4581,
+      "compl"
+    ],
+    [
+      4595,
+      "signific"
+    ],
+    [
+      4598,
+      "Ag"
+    ],
+    [
+      4601,
+      "infl"
+    ],
+    [
+      4634,
+      "viol"
+    ],
+    [
+      4638,
+      "crit"
+    ],
+    [
+      4657,
+      "Ob"
+    ],
+    [
+      4662,
+      "consum"
+    ],
+    [
+      4665,
+      "investig"
+    ],
+    [
+      4692,
+      "constructor"
+    ],
+    [
+      4726,
+      "ps"
+    ],
+    [
+      4729,
+      "educ"
+    ],
+    [
+      4759,
+      "je"
+    ],
+    [
+      4799,
+      "chall"
+    ],
+    [
+      4800,
+      "opport"
+    ],
+    [
+      4836,
+      "separ"
+    ],
+    [
+      4861,
+      "recomm"
+    ],
+    [
+      4880,
+      "shall"
+    ],
+    [
+      4893,
+      "imm"
+    ],
+    [
+      4902,
+      "purch"
+    ],
+    [
+      4912,
+      "beaut"
+    ],
+    [
+      4929,
+      "La"
+    ],
+    [
+      4936,
+      "simply"
+    ],
+    [
+      4940,
+      "Of"
+    ],
+    [
+      4981,
+      "maint"
+    ],
+    [
+      4984,
+      "TR"
+    ],
+    [
+      5006,
+      "autom"
+    ],
+    [
+      5008,
+      "quite"
+    ],
+    [
+      5017,
+      "LO"
+    ],
+    [
+      5018,
+      "descri"
+    ],
+    [
+      5034,
+      "cout"
+    ],
+    [
+      5052,
+      "SE"
+    ],
+    [
+      5056,
+      "ArrayList"
+    ],
+    [
+      5086,
+      "itself"
+    ],
+    [
+      5139,
+      "Pe"
+    ],
+    [
+      5146,
+      "TO"
+    ],
+    [
+      5164,
+      "veh"
+    ],
+    [
+      5167,
+      "inde"
+    ],
+    [
+      5168,
+      "fn"
+    ],
+    [
+      5182,
+      "particip"
+    ],
+    [
+      5190,
+      "EN"
+    ],
+    [
+      5193,
+      "upon"
+    ],
+    [
+      5199,
+      "vict"
+    ],
+    [
+      5208,
+      "ve"
+    ],
+    [
+      5223,
+      "Id"
+    ],
+    [
+      5226,
+      "evid"
+    ],
+    [
+      5229,
+      "endl"
+    ],
+    [
+      5232,
+      "Ap"
+    ],
+    [
+      5250,
+      "regard"
+    ],
+    [
+      5254,
+      "deg"
+    ],
+    [
+      5260,
+      "HT"
+    ],
+    [
+      5275,
+      "strateg"
+    ],
+    [
+      5293,
+      "notice"
+    ],
+    [
+      5327,
+      "milit"
+    ],
+    [
+      5353,
+      "announc"
+    ],
+    [
+      5355,
+      "Py"
+    ],
+    [
+      5363,
+      "Sen"
+    ],
+    [
+      5388,
+      "integ"
+    ],
+    [
+      5394,
+      "ok"
+    ],
+    [
+      5412,
+      "stre"
+    ],
+    [
+      5425,
+      "prote"
+    ],
+    [
+      5544,
+      "cv"
+    ],
+    [
+      5551,
+      "immedi"
+    ],
+    [
+      5574,
+      "alloc"
+    ],
+    [
+      5577,
+      "themselves"
+    ],
+    [
+      5588,
+      "GL"
+    ],
+    [
+      5597,
+      "charg"
+    ],
+    [
+      5599,
+      "ful"
+    ],
+    [
+      5603,
+      "eval"
+    ],
+    [
+      5627,
+      "SO"
+    ],
+    [
+      5664,
+      "NO"
+    ],
+    [
+      5686,
+      "conv"
+    ],
+    [
+      5695,
+      "establish"
+    ],
+    [
+      5697,
+      "onClick"
+    ],
+    [
+      5707,
+      "provides"
+    ],
+    [
+      5710,
+      "wasn"
+    ],
+    [
+      5718,
+      "Sy"
+    ],
+    [
+      5725,
+      "accom"
+    ],
+    [
+      5747,
+      "experi"
+    ],
+    [
+      5748,
+      "Em"
+    ],
+    [
+      5752,
+      "AS"
+    ],
+    [
+      5762,
+      "readonly"
+    ],
+    [
+      5791,
+      "repl"
+    ],
+    [
+      5811,
+      "inj"
+    ],
+    [
+      5812,
+      "calcul"
+    ],
+    [
+      5829,
+      "recogn"
+    ],
+    [
+      5831,
+      "hon"
+    ],
+    [
+      5833,
+      "prec"
+    ],
+    [
+      5836,
+      "San"
+    ],
+    [
+      5841,
+      "qual"
+    ],
+    [
+      5844,
+      "manufact"
+    ],
+    [
+      5851,
+      "PM"
+    ],
+    [
+      5876,
+      "extrem"
+    ],
+    [
+      5878,
+      "placeholder"
+    ],
+    [
+      5883,
+      "TV"
+    ],
+    [
+      5892,
+      "requ"
+    ],
+    [
+      5908,
+      "ou"
+    ],
+    [
+      5919,
+      "contrib"
+    ],
+    [
+      5925,
+      "logger"
+    ],
+    [
+      5931,
+      "seek"
+    ],
+    [
+      5950,
+      "stri"
+    ],
+    [
+      5952,
+      "DB"
+    ],
+    [
+      5978,
+      "ensure"
+    ],
+    [
+      5983,
+      "introdu"
+    ],
+    [
+      5994,
+      "Go"
+    ],
+    [
+      5997,
+      "ip"
+    ],
+    [
+      6024,
+      "neighb"
+    ],
+    [
+      6027,
+      "contr"
+    ],
+    [
+      6032,
+      "bi"
+    ],
+    [
+      6050,
+      "Mo"
+    ],
+    [
+      6056,
+      "creat"
+    ],
+    [
+      6087,
+      "achie"
+    ],
+    [
+      6095,
+      "priv"
+    ],
+    [
+      6124,
+      "sen"
+    ],
+    [
+      6158,
+      "weap"
+    ],
+    [
+      6159,
+      "CG"
+    ],
+    [
+      6165,
+      "vs"
+    ],
+    [
+      6166,
+      "frequ"
+    ],
+    [
+      6185,
+      "une"
+    ],
+    [
+      6197,
+      "ON"
+    ],
+    [
+      6216,
+      "ir"
+    ],
+    [
+      6218,
+      "surpr"
+    ],
+    [
+      6219,
+      "repe"
+    ],
+    [
+      6250,
+      "Ver"
+    ],
+    [
+      6251,
+      "Democr"
+    ],
+    [
+      6261,
+      "AR"
+    ],
+    [
+      6275,
+      "hy"
+    ],
+    [
+      6315,
+      "determin"
+    ],
+    [
+      6376,
+      "attr"
+    ],
+    [
+      6381,
+      "Ac"
+    ],
+    [
+      6386,
+      "ha"
+    ],
+    [
+      6395,
+      "zu"
+    ],
+    [
+      6399,
+      "io"
+    ],
+    [
+      6409,
+      "tf"
+    ],
+    [
+      6424,
+      "UK"
+    ],
+    [
+      6427,
+      "capt"
+    ],
+    [
+      6429,
+      "IO"
+    ],
+    [
+      6434,
+      "SH"
+    ],
+    [
+      6451,
+      "dict"
+    ],
+    [
+      6485,
+      "Lo"
+    ],
+    [
+      6512,
+      "Rel"
+    ],
+    [
+      6516,
+      "plt"
+    ],
+    [
+      6517,
+      "IM"
+    ],
+    [
+      6520,
+      "DateTime"
+    ],
+    [
+      6532,
+      "imag"
+    ],
+    [
+      6560,
+      "desc"
+    ],
+    [
+      6568,
+      "sy"
+    ],
+    [
+      6569,
+      "Ke"
+    ],
+    [
+      6607,
+      "buf"
+    ],
+    [
+      6621,
+      "dise"
+    ],
+    [
+      6643,
+      "UN"
+    ],
+    [
+      6653,
+      "influ"
+    ],
+    [
+      6673,
+      "PC"
+    ],
+    [
+      6694,
+      "relig"
+    ],
+    [
+      6764,
+      "df"
+    ],
+    [
+      6769,
+      "AM"
+    ],
+    [
+      6786,
+      "conduct"
+    ],
+    [
+      6790,
+      "IP"
+    ],
+    [
+      6795,
+      "Card"
+    ],
+    [
+      6814,
+      "throughout"
+    ],
+    [
+      6826,
+      "CH"
+    ],
+    [
+      6827,
+      "nullptr"
+    ],
+    [
+      6852,
+      "Sl"
+    ],
+    [
+      6871,
+      "cu"
+    ],
+    [
+      6919,
+      "altern"
+    ],
+    [
+      6974,
+      "towards"
+    ],
+    [
+      6976,
+      "CL"
+    ],
+    [
+      6990,
+      "histor"
+    ],
+    [
+      6991,
+      "Param"
+    ],
+    [
+      6994,
+      "js"
+    ],
+    [
+      7001,
+      "Techn"
+    ],
+    [
+      7011,
+      "independ"
+    ],
+    [
+      7028,
+      "bul"
+    ],
+    [
+      7034,
+      "alleg"
+    ],
+    [
+      7048,
+      "thous"
+    ],
+    [
+      7100,
+      "ple"
+    ],
+    [
+      7106,
+      "pa"
+    ],
+    [
+      7126,
+      "gratis"
+    ],
+    [
+      7147,
+      "anti"
+    ],
+    [
+      7156,
+      "Associ"
+    ],
+    [
+      7170,
+      "terr"
+    ],
+    [
+      7182,
+      "scient"
+    ],
+    [
+      7185,
+      "appropri"
+    ],
+    [
+      7187,
+      "idx"
+    ],
+    [
+      7206,
+      "BE"
+    ],
+    [
+      7207,
+      "UnityEngine"
+    ],
+    [
+      7277,
+      "emerg"
+    ],
+    [
+      7279,
+      "USA"
+    ],
+    [
+      7284,
+      "CO"
+    ],
+    [
+      7301,
+      "challeng"
+    ],
+    [
+      7334,
+      "opin"
+    ],
+    [
+      7345,
+      "celebr"
+    ],
+    [
+      7350,
+      "og"
+    ],
+    [
+      7366,
+      "Auth"
+    ],
+    [
+      7369,
+      "AT"
+    ],
+    [
+      7390,
+      "debug"
+    ],
+    [
+      7398,
+      "surv"
+    ],
+    [
+      7411,
+      "cards"
+    ],
+    [
+      7419,
+      "accur"
+    ],
+    [
+      7432,
+      "exerc"
+    ],
+    [
+      7486,
+      "vec"
+    ],
+    [
+      7491,
+      "ma"
+    ],
+    [
+      7505,
+      "ui"
+    ],
+    [
+      7517,
+      "convers"
+    ],
+    [
+      7519,
+      "Av"
+    ],
+    [
+      7529,
+      "scen"
+    ],
+    [
+      7531,
+      "SC"
+    ],
+    [
+      7532,
+      "explo"
+    ],
+    [
+      7543,
+      "Il"
+    ],
+    [
+      7544,
+      "restaur"
+    ],
+    [
+      7553,
+      "optim"
+    ],
+    [
+      7555,
+      "LI"
+    ],
+    [
+      7577,
+      "Fre"
+    ],
+    [
+      7590,
+      "Initialized"
+    ],
+    [
+      7594,
+      "dt"
+    ],
+    [
+      7608,
+      "rect"
+    ],
+    [
+      7618,
+      "enum"
+    ],
+    [
+      7622,
+      "Ok"
+    ],
+    [
+      7629,
+      "aren"
+    ],
+    [
+      7647,
+      "jo"
+    ],
+    [
+      7652,
+      "PARTICULAR"
+    ],
+    [
+      7654,
+      "compar"
+    ],
+    [
+      7655,
+      "doub"
+    ],
+    [
+      7656,
+      "Vis"
+    ],
+    [
+      7681,
+      "ded"
+    ],
+    [
+      7691,
+      "couldn"
+    ],
+    [
+      7697,
+      "mechan"
+    ],
+    [
+      7710,
+      "BY"
+    ],
+    [
+      7711,
+      "Att"
+    ],
+    [
+      7736,
+      "assum"
+    ],
+    [
+      7744,
+      "pd"
+    ],
+    [
+      7756,
+      "demonstr"
+    ],
+    [
+      7759,
+      "instit"
+    ],
+    [
+      7767,
+      "Di"
+    ],
+    [
+      7777,
+      "ng"
+    ],
+    [
+      7795,
+      "bur"
+    ],
+    [
+      7797,
+      "beyond"
+    ],
+    [
+      7804,
+      "typeof"
+    ],
+    [
+      7811,
+      "BO"
+    ],
+    [
+      7856,
+      "NE"
+    ],
+    [
+      7861,
+      "om"
+    ],
+    [
+      7862,
+      "scre"
+    ],
+    [
+      7871,
+      "advant"
+    ],
+    [
+      7872,
+      "prev"
+    ],
+    [
+      7878,
+      "encour"
+    ],
+    [
+      7879,
+      "QString"
+    ],
+    [
+      7898,
+      "sb"
+    ],
+    [
+      7905,
+      "distr"
+    ],
+    [
+      7906,
+      "au"
+    ],
+    [
+      7922,
+      "oppos"
+    ],
+    [
+      7930,
+      "strugg"
+    ],
+    [
+      7935,
+      "MERCHANTABILITY"
+    ],
+    [
+      7942,
+      "guess"
+    ],
+    [
+      7945,
+      "particularly"
+    ],
+    [
+      7946,
+      "II"
+    ],
+    [
+      7960,
+      "cos"
+    ],
+    [
+      7977,
+      "af"
+    ],
+    [
+      7986,
+      "goto"
+    ],
+    [
+      8016,
+      "rent"
+    ],
+    [
+      8030,
+      "SD"
+    ],
+    [
+      8054,
+      "erot"
+    ],
+    [
+      8083,
+      "instanceof"
+    ],
+    [
+      8102,
+      "useState"
+    ],
+    [
+      8112,
+      "slight"
+    ],
+    [
+      8124,
+      "EventArgs"
+    ],
+    [
+      8142,
+      "tit"
+    ]
+  ]
+}
