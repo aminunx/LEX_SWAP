@@ -937,3 +937,43 @@ the tail worse than before I touched it.
 
 `nog` removed from the movable set, with the reason recorded next to it so it
 does not get added back.
+
+
+---
+
+## Correction: every natural-Dutch figure before 2026-11-16 was mixed-criterion
+
+The system has two paths. Prompts a reorder rule matches get a single candidate
+scored and must match the expected answer **exactly**. Prompts no rule matches
+are generated left-to-right and were credited if the expected word appeared
+**anywhere** in roughly ten tokens.
+
+So one path had ten chances and the other had one, and the figures mixed them.
+Worse, the mixture moved: **every new rule shifts prompts from the lenient path
+to the strict one**, so a correct rule looked harmful at the moment it applied,
+and removing a rule looked like a gain.
+
+Under a uniform strict rule - first content word, exact match, both paths:
+
+| | natural Dutch |
+|---|---|
+| lexicon only | **0%** |
+| + syntax layer | **26%** |
+
+The lexicon alone gets **nothing** right on naturally written Dutch. The
+previously reported 4% was entirely the lenient criterion. So the syntax layer
+is not an improvement to the system - on natural Dutch it **is** the system.
+
+**The earlier series - 4%, 18%, 20%, 24%, 26%, 30%, 32% - is not comparable and
+should not be read as a trajectory.** Recovering it would mean re-running every
+version under the uniform rule. Only runs from here carry a single criterion,
+and both figures are printed side by side so the history stays legible rather
+than quietly deleted.
+
+### The rule this adds
+
+An earlier round produced: *after any fix, re-check the baseline, not only the
+quantity under test.* That was followed every round and was not enough.
+
+> **A system with two paths needs one criterion.** Otherwise it does not measure
+> itself - it measures which path a prompt happened to take.

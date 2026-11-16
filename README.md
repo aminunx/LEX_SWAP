@@ -19,8 +19,15 @@ measured 2026-11-16
 | prompt style | input coverage | output purity | **accuracy** | English ceiling |
 |---|---|---|---|---|
 | word-order parallel to English | 100% | **99.6%** | **64%** | 61% |
-| naturally written Dutch, lexicon only | 100% | 94.1% | **4%** | — |
-| **naturally written Dutch, + syntax layer** | 100% | 94.1% | **24%** | — |
+| naturally written Dutch, lexicon only | 100% | 94.1% | **0%** | — |
+| **naturally written Dutch, + syntax layer** | 100% | 94.1% | **26%** | — |
+
+Natural-Dutch figures use one criterion for both of the system's paths: first
+content word, exact match. Earlier versions of this table reported 4% and 24%,
+which mixed a lenient rule for generated prompts with a strict one for scored
+prompts - see the correction in [`docs/NOTES.md`](docs/NOTES.md). **The lexicon
+alone gets nothing right on natural Dutch**, so the syntax layer is not an
+improvement to the system; there it is the system.
 
 Natural-Dutch figures are on a 50-prompt set. The original 20-prompt set is
 retained and scored separately: one prompt there is 5%, wider than any effect
