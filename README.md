@@ -90,10 +90,38 @@ regimes in one sequence**: relabelled English embeddings sitting next to genuine
 Dutch ones. The runner reports that proportion per prompt, and no result should
 be read without it.
 
+## Measured so far
+
+| lexicon | method | accuracy | source baseline |
+|---|---|---|---|
+| 14,860 pairs | machine-translated | 21% | 62% |
+| 10,820 pairs | + round-trip verified | 32% | 62% |
+| **63 pairs** | **hand-made seed** | **67%** | 83% |
+| **2,244 pairs** | **seed + verified growth** | **83%** | **83%** |
+
+**At 2,244 pairs the swap matches the source baseline exactly — 83% against
+83%.** Full preservation on prompts that are word-for-word parallel with
+English, with no training and weights verified unchanged.
+
+On *naturally written* Dutch, with its own word order, the same pipeline reaches
+**32%**. **The gap between those two numbers is the whole limitation of the
+method, and it is word order.**
+
+A 63-pair hand-made lexicon beat a 10,820-pair machine-translated one by two to
+three times. Small and exact beats large and noisy.
+
+## Read this first
+
+[`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) — the playbook for applying this to
+any model, written from the errors that produced it: four correctness gates to
+run before any experiment, seven logged bugs with their symptoms and fixes, and
+three predictions that failed with what each cost.
+
 ## Run
 
 ```bash
-modal run modal/run_lexswap.py
+modal run modal/run_ladder.py      # the ladder: seed, then geometric growth
+modal run modal/run_multilang.py   # Dutch vs Indonesian, one variable
 ```
 
 Results and the full swap table are written to the `lexswap` volume under
