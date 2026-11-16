@@ -63,13 +63,28 @@ class DutchQwen:
         self.decode_map = {int(k): v for k, v in lex["decode"].items()}
         self.mid = lex["encode_mid"]
         self.init = lex["encode_initial"]
-        self.en2nl = {v.strip().lower(): k.strip()
-                      for k, v in self.mid.items()}
+        # `encode_mid` maps Dutch -> token id, not Dutch -> English, so the
+        # route from a source word to a target word goes through the id:
+        # english -> id (tokenizer) -> dutch (decode map).
+        self._en2nl_cache: dict = {}
 
         # a signature of the loaded weights, to prove they are never written to
         self._sig = {k: v.detach().clone()
                      for k, v in list(self.model.state_dict().items())[:3]}
         self.last_coverage: dict = {}
+
+    def en2nl(self, word: str):
+        """English word -> Dutch word, through the token id."""
+        key = word.lower()
+        if key in self._en2nl_cache:
+            return self._en2nl_cache[key]
+        ids = self.tok.encode(" " + key, add_special_tokens=False)
+        out = None
+        if len(ids) == 1:
+            d = self.decode_map.get(ids[0])
+            out = d.strip() if d else None
+        self._en2nl_cache[key] = out
+        return out
 
     # ------------------------------------------------------------------ encode
     def encode(self, text: str) -> list[int]:
@@ -116,7 +131,7 @@ class DutchQwen:
         from .reassemble import render
 
         parts = render(ids, lambda t: self.tok.decode([t]),
-                       self.decode_map, self.en2nl.get)
+                       self.decode_map, self.en2nl)
         return "".join(apply_article_agreement(parts))
 
     # ---------------------------------------------------------------- generate
@@ -158,7 +173,7 @@ class DutchQwen:
         for grp in group_words(pieces):
             if len(grp) > 1:
                 w = "".join(t for _, t in grp).lstrip(" ")
-                ok = bool(w.isalpha() and self.en2nl.get(w.lower()))
+                ok = bool(w.isalpha() and self.en2nl(w.lower()))
                 for tid, _ in grp:
                     done[tid] = ok or tid in self.decode_map
             else:

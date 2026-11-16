@@ -68,8 +68,21 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         lex = json.load(f)
     id2 = {int(k): v for k, v in lex["decode"].items()}
     mid, init = lex["encode_mid"], lex["encode_initial"]
-    en2nl = {v.strip().lower(): k.strip() for k, v in mid.items()}
     nl2id = {k.strip().lower(): int(v) for k, v in mid.items()}
+
+    def en2nl_lookup(w):
+        """English word -> Dutch word, via the token id.
+
+        `encode_mid` maps Dutch -> token id, NOT Dutch -> English. Treating its
+        values as strings is what crashed the first v14 run, and the route from
+        a source word to a target word necessarily goes through the id:
+        english -> id (tokenizer) -> dutch (decode map).
+        """
+        ids = tok.encode(" " + w, add_special_tokens=False)
+        if len(ids) != 1:
+            return None
+        d = id2.get(ids[0])
+        return d.strip() if d else None
     print("  lexicon {} decode ids, {} mid forms".format(len(id2), len(mid)))
 
     def enc_words(words):
@@ -89,7 +102,7 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         return ids
 
     def dec(ids):
-        parts = render_words(ids, lambda t: tok.decode([t]), id2, en2nl.get)
+        parts = render_words(ids, lambda t: tok.decode([t]), id2, en2nl_lookup)
         return "".join(apply_article_agreement(parts))
 
     @torch.no_grad()

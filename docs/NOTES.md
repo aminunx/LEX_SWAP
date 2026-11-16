@@ -522,3 +522,30 @@ sits far below `oracle`, the **rules** are the limit and more rules pay; if both
 are low, **scoring** is the limit, which is a different problem with a different
 fix. Without that arm a low result would be unattributable - the same mistake as
 the five-variable runs at the start of this project.
+
+## 2026-11-16 · v14 crashed on a direction confusion, in this project of all projects
+
+```
+AttributeError: 'int' object has no attribute 'strip'
+```
+
+`encode_mid` maps **Dutch -> token id**. I read it as Dutch -> English and
+called `.strip()` on an integer.
+
+The route from a source word to a target word necessarily goes through the id:
+
+```
+english  ->  id (tokenizer)  ->  dutch (decode map)
+```
+
+There is no direct source-to-target table, and there never was - the asymmetry
+between the two directions has been the single most productive idea in this
+project, and I still mixed them up in the type system. Fourth time the
+input/output distinction has bitten, and the first time it crashed rather than
+quietly degrading.
+
+The same bug was in the shipped `dutch_model.py`, so the delivered artefact
+would have failed on its first multi-token word. Caught only because v14
+exercised the same code path. **An artefact that is committed is not an artefact
+that has been run** - and nothing in the delivery commit had actually executed
+the wrapper.
