@@ -555,6 +555,16 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     print("  PMI scoring is ON; the same slots under the previous")
     print("  frequency-biased scoring would have scored {}/{}".format(
         sum(pmi_alt), len(pmi_alt)))
+    print("")
+    print("  EXPECTED vs CHOSEN, every scored slot - is the chosen word a")
+    print("  VALID Dutch continuation? If it usually is, the remaining loss is")
+    print("  ambiguity in my prompts, which no amount of ranking work fixes.")
+    print("  {:>3} {:<14}{:<14}{:>6}".format("#", "expected", "chosen", "rank"))
+    for rr in sorted(ranks, key=lambda z: z["id"]):
+        print("  {:>3} {:<14}{:<14}{:>6}".format(
+            rr["id"], rr["expected"][:13], str(rr["top1"])[:13],
+            rr["rank"] if rr["rank"] is not None else "-"))
+    print("")
     print("  --- STRICT: first content word, exact match, both paths ---")
     print("  lexical {:>3}/{}  {:.0%}     syntax {:>3}/{}  {:.0%}".format(
         res["lexical"], n, res["lexical"] / n,
