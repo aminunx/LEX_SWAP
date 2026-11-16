@@ -116,8 +116,9 @@ def run(n_sent: int = 600, min_overlap: int = 4):
     print("  anchors: Dutch must be low, Turkish lowest. If not, the metric is")
     print("  broken and no other row may be read.")
     print("")
-    print("  {:<4}{:<12}{:<14}{:>8}{:>9}{:>9}{:>8}  {}".format(
-        "code", "language", "family", "tau", "exact%", "cover%", "n", "role"))
+    print("  {:<4}{:<12}{:<14}{:>8}{:>9}{:>9}{:>8}{:>7}  {}".format(
+        "code", "language", "family", "tau", "exact%", "cover%", "n",
+        "pts", "role"))
     print("-" * 104)
 
     results = {}
@@ -156,7 +157,7 @@ def run(n_sent: int = 600, min_overlap: int = 4):
                     code, name, family, type(e).__name__))
                 continue
 
-        taus, exact, used, covs = [], 0, 0, []
+        taus, exact, used, covs, ptsn = [], 0, 0, [], []
         for row in ds:
             tr = row["translation"]
             en_s, sr_s = tr.get("en"), tr.get(code)
@@ -169,20 +170,23 @@ def run(n_sent: int = 600, min_overlap: int = 4):
             mapped = [(d.get(w), i) for i, w in enumerate(sr_w)]
             hit = [(m, i) for m, i in mapped if m]
             covs.append(len(hit) / max(len(sr_w), 1))
-            # position of each mapped word in the real English sentence
-            pos, seen = [], set()
+            # Position of each mapped word in the real English sentence.
+            # ONLY words that occur exactly once, so the position is forced and
+            # no choice is made. Taking the first unused match instead - the
+            # previous version - always picked the smallest free index and so
+            # produced a sorted sequence regardless of the real order, which is
+            # what made Dutch tie with Spanish and Vietnamese reach 1.000.
+            pos = []
             for m, _ in hit:
-                for j, e in enumerate(en_w):
-                    if e == m and j not in seen:
-                        pos.append(j)
-                        seen.add(j)
-                        break
+                if en_w.count(m) == 1:
+                    pos.append(en_w.index(m))
             if len(pos) < min_overlap:
                 continue
             t = kendall_tau(pos)
             if t is None:
                 continue
             taus.append(t)
+            ptsn.append(len(pos))
             if pos == sorted(pos):
                 exact += 1
             used += 1
@@ -199,30 +203,38 @@ def run(n_sent: int = 600, min_overlap: int = 4):
         results[code] = {"name": name, "family": family, "role": role,
                          "tau": round(tau, 3), "exact": round(ex, 3),
                          "coverage": round(cv, 3), "n": used,
+                         "mean_points": round(sum(ptsn) / max(len(ptsn), 1), 1),
                          "dict_size": len(d)}
-        print("  {:<4}{:<12}{:<14}{:>8.3f}{:>9.0%}{:>9.0%}{:>8}  {}".format(
-            code, name, family, tau, ex, cv, used, role))
+        print("  {:<4}{:<12}{:<14}{:>8.3f}{:>9.0%}{:>9.0%}{:>8}{:>7.1f}  {}".format(
+            code, name, family, tau, ex, cv, used,
+            sum(ptsn) / max(len(ptsn), 1), role))
 
     # -------------------------------------------------- validity of the scale
     print("")
     print(BAR)
     print("ANCHOR CHECK - is the instrument reading correctly?")
     print(BAR)
-    tr_t = results.get("tr", {}).get("tau")
-    nl_t = results.get("nl", {}).get("tau")
     es_t = results.get("es", {}).get("tau")
-    ok = True
-    if tr_t is not None and es_t is not None:
-        good = tr_t < es_t
+    ok, checks = True, []
+    # EVERY anchor must pass. The previous gate required only Turkish, so Dutch
+    # failed and the run still declared the scale usable - four anchors defined
+    # and one enforced.
+    for code, label in (("tr", "Turkish"), ("fa", "Persian"),
+                        ("hi", "Hindi"), ("nl", "Dutch")):
+        t = results.get(code, {}).get("tau")
+        if t is None or es_t is None:
+            continue
+        margin = es_t - t
+        good = margin > 0.05        # a tie is a failure, not a pass
         ok &= good
-        print("  Turkish ({:.3f}) below Spanish ({:.3f}): {}".format(
-            tr_t, es_t, "YES" if good else "NO - metric is broken"))
-    if nl_t is not None and es_t is not None:
-        good = nl_t < es_t
-        print("  Dutch ({:.3f}) below Spanish ({:.3f}): {}".format(
-            nl_t, es_t, "YES" if good else "NO"))
-    print("  -> {}".format("scale is usable" if ok else
-                           "DO NOT read the other rows"))
+        checks.append((label, t, margin, good))
+        print("  {:<9} {:.3f}  below Spanish {:.3f} by {:+.3f}   {}".format(
+            label, t, es_t, margin,
+            "ok" if good else "FAIL - no separation"))
+    print("  -> {}".format(
+        "every anchor separated; the scale is usable" if ok else
+        "ANCHORS FAILED - the metric is not measuring word order, and no"
+        " row below may be read as a result"))
 
     print("")
     print(BAR)
