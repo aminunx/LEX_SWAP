@@ -173,8 +173,30 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         "#", "prompt", "expect", "lexical", "syntax", "rule"))
     print("-" * 112)
 
-    res = {"lexical": 0, "syntax": 0, "oracle": 0}
+    res = {"lexical": 0, "syntax": 0, "oracle": 0, "lemma": 0}
     rows = []
+    dbg = []
+    DEBUG_IDS = {1, 2, 7, 16}
+
+    def same_lemma(a, b):
+        """Diagnostic only: do these share a Dutch verb stem?
+
+        Reported ALONGSIDE exact match and never instead of it. Switching the
+        headline metric after seeing the result is moving the goalpost; naming
+        where the failure sits is not.
+        """
+        a, b = a.lower(), b.lower()
+        for w in (a, b):
+            pass
+        def stem(x):
+            for pre in ("ge",):
+                if x.startswith(pre) and len(x) > 4:
+                    x = x[len(pre):]
+            for suf in ("en", "t", "de", "te", "d"):
+                if x.endswith(suf) and len(x) - len(suf) >= 3:
+                    return x[: len(x) - len(suf)]
+            return x
+        return stem(a) == stem(b) or a[:4] == b[:4]
     for p in NATURAL_NL:
         exp = p["exp"]
         # ---- arm 1: v13 behaviour
@@ -214,6 +236,20 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                 best = int(torch.argmax(sc))
                 syn_out = cws[best]
                 syn_hit = syn_out.lower() == exp.lower()
+                if p["id"] in DEBUG_IDS:
+                    order = torch.argsort(sc, descending=True)[:6]
+                    te = nl2id.get(exp.lower())
+                    dbg.append({
+                        "id": p["id"], "nl": p["nl"], "expected": exp,
+                        "reordered_nl": " ".join(pre) + " [___] " + " ".join(suf),
+                        "english_prefix": tok.decode(pre_ids),
+                        "english_suffix": tok.decode(suf_ids),
+                        "expected_token": (tok.decode([te]) if te else None),
+                        "expected_in_pool": bool(te in cids),
+                        "top": [{"nl": cws[int(j)],
+                                 "en": tok.decode([cids[int(j)]]),
+                                 "score": round(float(sc[int(j)]), 4)}
+                                for j in order]})
 
         # ---- arm 3: oracle slot - can scoring reach the right answer at all?
         orc_hit = False
@@ -229,9 +265,13 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                                 [t_exp] + distract)
                 orc_hit = bool(int(torch.argmax(sc)) == 0)
 
+        lemma_hit = syn_hit or (r is not None and r[1] and
+                                isinstance(syn_out, str) and
+                                same_lemma(syn_out, exp))
         res["lexical"] += lex_hit
         res["syntax"] += syn_hit
         res["oracle"] += orc_hit
+        res["lemma"] += lemma_hit
         rows.append({"id": p["id"], "nl": p["nl"], "expected": exp,
                      "rule": rule, "lexical_out": lex_out.strip(),
                      "lexical_hit": bool(lex_hit),
@@ -250,6 +290,26 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         res["syntax"], n, res["syntax"] / n))
     print("  oracle slot (bound)   {:>3}/{}   {:.0%}".format(
         res["oracle"], n, res["oracle"] / n))
+    print("  [diagnostic] same verb stem, wrong inflection counted as a hit:"
+          "  {:>3}/{}   {:.0%}".format(res["lemma"], n, res["lemma"] / n))
+    print("  That line is a DIAGNOSTIC, not the result. It localises the")
+    print("  failure to Dutch inflection rather than to verb choice.")
+
+    print("")
+    print(BAR)
+    print("WHAT THE MODEL ACTUALLY SEES - the intermediate representation")
+    print(BAR)
+    for d in dbg:
+        print("  #{} {}   expect `{}`".format(d["id"], d["nl"], d["expected"]))
+        print("     reordered : {}".format(d["reordered_nl"]))
+        print("     english   : '{}' [___] '{}'".format(
+            d["english_prefix"], d["english_suffix"]))
+        print("     answer tok: {}   in pool: {}".format(
+            d["expected_token"], d["expected_in_pool"]))
+        for c in d["top"]:
+            print("       {:<14}{:<14}{:>9.4f}".format(
+                c["nl"], repr(c["en"]), c["score"]))
+        print("")
     print("")
     if res["syntax"] > res["lexical"]:
         print("  The syntax layer helps. Word order was addressable without")
@@ -273,6 +333,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                "lexical_acc": round(res["lexical"] / n, 3),
                "syntax_acc": round(res["syntax"] / n, 3),
                "oracle_acc": round(res["oracle"] / n, 3),
+               "lemma_diagnostic": round(res["lemma"] / n, 3),
+               "debug": dbg,
                "weights_unchanged": bool(unchanged), "rows": rows}
     with open("/cache/out/v14.json", "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
