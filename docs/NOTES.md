@@ -1002,3 +1002,73 @@ moved; this one could not be.
 
 Reverted, with the comparison machinery left in place so every future run keeps
 reporting what the alternative would have scored.
+
+## 2026-11-16 · Two proxies for word-order compatibility, both failed their anchors
+
+The question was which languages have English's word order, and the plan was to
+answer it cheaply instead of building a curated pipeline per language.
+
+**Proxy 1 - Kendall tau** between word-for-word mapped order and real English
+order, over 16 languages from opus-100 with MUSE dictionaries.
+
+```
+Turkish 0.581  below Spanish 0.821  ok
+Dutch   0.801  below Spanish 0.821  FAIL - 0.020, no separation
+```
+
+Dutch measured 26% against 64% in this project, so a metric that cannot tell it
+from Spanish is not measuring word order. Cause: tau averages every word pair,
+while Dutch's divergence is one or two positions in fifteen - the verb at the
+end of a subordinate clause, V2 inversion, a separable prefix. Nouns,
+adjectives, prepositions and determiners all sit in English-compatible places
+and drown the signal. **I chose a metric that was easy to compute rather than
+one that measured what matters.**
+
+(It also had a real bug: position lookup took the first unused left-to-right
+match, which always picks the smallest free index and manufactures a sorted
+sequence. Vietnamese scored exactly 1.000 on four matched words. Fixed, and the
+anchors still failed.)
+
+**Proxy 2 - perplexity of the swapped text.** Replace the proxy with the
+quantity the method actually depends on: swap real sentences word for word and
+ask how surprised the model is.
+
+```
+Dutch 4096 worse than Spanish 5012:        NO - Dutch is BETTER
+worst language is an SOV anchor:           NO - it is Norwegian
+real English ~70, swapped text 3000-9700   =  44x to 140x
+```
+
+44x to 140x is not broken English, it is **noise**. The swap used MUSE alone
+with the first translation per word - the exact configuration that scored 21% in
+the first run of this project, before 329 hand pairs, the sense fixes, the
+agreement layers and the article handling.
+
+### The conclusion, and it is about measurement rather than languages
+
+**Lexical noise swamps the word-order signal in both proxies.** What separated
+the languages in proxy 2 was the quality of their dictionaries, not the shape of
+their grammar.
+
+> **Any measurement that runs through a raw dictionary measures the dictionary.**
+
+Isolating word order requires a curated lexicon, and curating one took about
+thirty runs for Dutch. So the question cannot be answered cheaply, and I am not
+trying a third proxy: two independent failures with the same cause is a pattern,
+not bad luck.
+
+### What stands, with the two kinds of claim kept apart
+
+**Measured:** the method works where word order matches English - 64% against
+26%, with the lexicon at 99.6% purity in both halves, so the difference is word
+order and nothing else.
+
+**Typology, not measurement, and labelled as such:** Spanish is SVO in main and
+subordinate clauses, has no V2 and no separable verbs, and diverges from English
+on adjective position alone (`casa blanca`). Dutch diverges on the verb, the
+inversion and the separable prefix. That makes Spanish structurally closer - but
+it is an inference from grammar, not a number from an experiment, and it must
+not be reported as one.
+
+The decisive test is building the curated pipeline for Spanish and measuring it,
+exactly as was done for Dutch.
