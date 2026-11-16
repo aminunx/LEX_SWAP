@@ -166,3 +166,55 @@ failures visible instead of as one opaque number.
 fallback would reproduce the exact failure this run exists to remove while
 appearing to have fixed it — and given that I have now mis-attributed three
 results in this project, the guard matters more than the convenience.
+
+## 2026-11-16 · The real dictionary worked; my code wasted a third of it
+
+MUSE en-nl fetched: **82,167 English headwords**. Of the vocabulary's 41,495
+whole-word tokens, **27,955 matched (67.4%)**. The hard rule held — no silent
+fallback to machine translation was needed.
+
+And output purity moved from 0.67 to **0.689**. Two points, for a real
+dictionary replacing machine guesses.
+
+The reason was a bug in this code, not a limit of the dictionary. Both
+directions were keyed on the Dutch word, so `big`, `large` and `great` all
+mapping to `groot` left two of the three ids with **no Dutch rendering at all**.
+27,955 matches collapsed to 17,201 pairs: **10,754 renderings discarded for
+nothing.**
+
+A collision constrains **input only**:
+
+| direction | collision |
+|---|---|
+| `groot` → id | unavoidable, one id must be chosen |
+| id → `groot` | **no conflict** — many ids may all render as `groot` |
+
+Fixed: the decode map is built from every match, the encode map keeps
+first-wins.
+
+## 2026-11-16 · Stop patching files with string replacement
+
+Third file broken this session by a `str.replace` patch — this one a
+`SyntaxError` at line 299 from a mangled escape inside a heredoc. The run died
+before it started.
+
+**Rule: write the file, do not patch it.** The patch is faster to type and has
+now cost three runs.
+
+## 2026-11-16 · Why the decomposition had to come before more lexicon work
+
+Four rungs were spent optimising lexicon SIZE, then one on dictionary QUALITY,
+and purity moved 66% → 67% → 68.9%. I should have built the diagnostic first.
+
+It sorts every un-renderable generated token into three buckets, and only one of
+them is reachable:
+
+- `subword_fragment` — a BPE piece like `ing`. **No word-level translation
+  exists**, in MUSE or in any human dictionary. Whatever share this holds is a
+  hard ceiling on the whole method.
+- `whole_word_no_entry` — reachable with a bigger dictionary.
+- `whole_word_entry_exists` — a code bug, free to fix.
+
+The first number is the honest answer to "how much is left", and it was
+obtainable at any point in the last five rungs. Measuring the ceiling before
+optimising towards it is cheaper than discovering it by exhaustion.
