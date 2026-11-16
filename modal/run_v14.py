@@ -290,12 +290,10 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                 if te is not None and te not in cids:
                     cids.append(te)
                     cws.append(exp)
-                short = shortlist(pre_ids, cids, keep=24)
-                keepset = set(short)
-                cids2 = [c for c in cids if c in keepset]
-                cws2 = [w for c, w in zip(cids, cws) if c in keepset]
-                if cids2:
-                    cids, cws = cids2, cws2
+                # NOT shortlisted: a prefix-only prior has no access to the
+                # suffix, so it is strictly less informed than the score it
+                # would be filtering for, and it discarded correct answers.
+                # Measured 18% -> 14%. Reverted and recorded.
                 sc = score_slot(pre_ids, suf_ids, cids)
                 best = int(torch.argmax(sc))
                 syn_out = cws[best]

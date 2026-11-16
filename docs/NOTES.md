@@ -777,3 +777,45 @@ Fix: two stages. The model's own left-to-right distribution over the
 English-order prefix ranks the candidates, the top 24 survive, and
 full-sequence scoring runs only on those. That is the filtering the oracle had
 by luck, done deliberately - and it uses nothing but the unchanged model.
+
+## 2026-11-16 · Shortlisting hurt, and my reading of the oracle arm was wrong
+
+```
+syntax, 300 candidates, no shortlist :  18%
+syntax, shortlisted to 24            :  14%
+```
+
+The hypothesis was that pool size was drowning the correct answer. It was
+wrong, and the reason matters more than the result.
+
+The prefix-only prior **has no access to the suffix**, so it is strictly less
+informed than the full-sequence score it was filtering for. Ranking by it
+discards answers the full score would have picked. A filter can only help when
+it is at least as well informed as the thing it filters for, and this one was
+not.
+
+**And it corrects my reading of the oracle arm.** I had treated 32% as a bound
+on what better candidate selection could reach. It is not. The oracle competes
+the correct answer against twenty **arbitrary** distractors, which rarely beat
+it, while the real run competes it against three hundred **genuine** candidates
+that often do. The gap is not pool size - it is competitor strength, and 32% is
+a measurement against weak competition rather than a ceiling.
+
+So the arm I built to bound the approach was not bounding anything. That is the
+ninth conclusion of mine to fall in this project, and the first to fall because
+an experiment designed to establish a ceiling was not measuring a ceiling at
+all.
+
+## 2026-11-16 · What the data actually points at
+
+```
+[diagnostic] right verb, wrong form : 10/50  (20%)
+```
+
+Twice as many prompts get the verb right as get the whole answer right, so the
+loss is **inflection**, not verb choice. The participle filter was admitting
+every infinitive through its `-en` test, which is why `lezen` kept winning slots
+that belong to `gelezen`.
+
+Tightened: a participle must carry `ge-` or end in `-d`/`-t` without `-en`; an
+infinitive must end in `-en` and never carry `ge-`.

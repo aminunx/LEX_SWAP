@@ -178,10 +178,16 @@ def build_candidates(slot_kind, lexicon_nl_words, limit=400, subject=None):
             if not third and lw.endswith("t"):
                 continue
         if slot_kind == "participle":
-            if lw.startswith("ge") or lw.endswith(("en", "d", "t")):
+            # Dutch past participles almost all carry the ge- prefix, or end
+            # in -d/-t for weak verbs with an inseparable prefix. The old test
+            # also admitted every infinitive via -en, which is why `lezen`
+            # kept winning slots that belong to `gelezen`.
+            if lw.startswith("ge") or (lw.endswith(("d", "t"))
+                                       and not lw.endswith("en")):
                 out.append(word)
         elif slot_kind == "infinitive":
-            if lw.endswith(("en", "n")):
+            # infinitives end in -en and never carry ge-
+            if lw.endswith("en") and not lw.startswith("ge"):
                 out.append(word)
         elif slot_kind == "verb":
             if lw.endswith(("t", "en", "de", "te")) or lw in {
