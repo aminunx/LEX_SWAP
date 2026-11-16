@@ -82,26 +82,40 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 8, seed: int = 0):
         print("     de/het, and harmless for encoding)")
 
     def build_seed_tables():
-        id2 = {}
-        tgt2 = {}
-        for nl, en in SEED_NL.items():
-            ids = tok.encode(" " + en, add_special_tokens=False)
-            if len(ids) != 1:
-                continue
-            i = ids[0]
-            tgt2.setdefault(" " + nl, i)
-            tgt2.setdefault(" " + nl.capitalize(), i)
-            id2.setdefault(i, " " + nl)
-        return id2, tgt2
+        """Two tables, because a sentence-initial word is a DIFFERENT token.
 
-    seed_id2, seed_tgt2 = build_seed_tables()
+        Rung 0 of the first attempt failed its own gate with 0/12 id matches at
+        100% coverage, and the cause was exactly one position: byte-level BPE
+        encodes "The book" as ["The", " book"], so the first word carries no
+        leading space and is capitalised, while every later word does carry one.
+        Mapping every Dutch word to its space-prefixed English id therefore got
+        positions 1..n right and position 0 wrong, every time.
+
+        `tgt2` is for mid-sentence words, `tgt2_init` for the first word.
+        """
+        id2, tgt2, tgt2_init = {}, {}, {}
+        for nl, en in SEED_NL.items():
+            mid = tok.encode(" " + en, add_special_tokens=False)
+            if len(mid) == 1:
+                tgt2.setdefault(" " + nl, mid[0])
+                tgt2.setdefault(" " + nl.capitalize(), mid[0])
+                id2.setdefault(mid[0], " " + nl)
+            ini = tok.encode(en[0].upper() + en[1:], add_special_tokens=False)
+            if len(ini) == 1:
+                tgt2_init.setdefault(nl.capitalize(), ini[0])
+                tgt2_init.setdefault(nl, ini[0])
+                id2.setdefault(ini[0], nl.capitalize())
+        return id2, tgt2, tgt2_init
+
+    seed_id2, seed_tgt2, seed_init = build_seed_tables()
     print(f"  seed covers {len(seed_id2)} distinct ids, "
-          f"{len(seed_tgt2)} Dutch surface forms")
+          f"{len(seed_tgt2)} mid-sentence forms, "
+          f"{len(seed_init)} sentence-initial forms")
 
     # ------------------------------------------------------------ the codec
     class Codec:
-        def __init__(self, id2, tgt2):
-            self.id2, self.tgt2 = id2, tgt2
+        def __init__(self, id2, tgt2, tgt2_init):
+            self.id2, self.tgt2, self.init = id2, tgt2, tgt2_init
             self.cov = {}
 
         def encode(self, text):
@@ -109,13 +123,18 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 8, seed: int = 0):
             for k, w in enumerate(text.split(" ")):
                 if not w:
                     continue
-                key = w if k == 0 else " " + w
-                got = (self.tgt2.get(key) or self.tgt2.get(" " + w) or
-                       self.tgt2.get(" " + w.lower()) or
-                       self.tgt2.get(" " + w.capitalize()))
+                if k == 0:
+                    # position 0 has no leading space - a different token
+                    got = (self.init.get(w) or self.init.get(w.capitalize()) or
+                           self.init.get(w.lower()))
+                else:
+                    got = (self.tgt2.get(" " + w) or
+                           self.tgt2.get(" " + w.lower()) or
+                           self.tgt2.get(" " + w.capitalize()))
                 if got is not None:
                     ids.append(got); hit += 1
                 else:
+                    key = w if k == 0 else " " + w
                     ids.extend(tok.encode(key, add_special_tokens=False))
                     miss += 1; missed.append(w)
             n = hit + miss
@@ -136,7 +155,7 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 8, seed: int = 0):
         return out[0, len(ids):].tolist()
 
     # ------------------------------------- rung 0 run: ids must match exactly
-    codec0 = Codec(seed_id2, seed_tgt2)
+    codec0 = Codec(seed_id2, seed_tgt2, seed_init)
     print(f"\n{'#':>3} {'prompt (nl)':<36}{'cov':>6}{'ids match en':>14}"
           f"  {'swap output':<22}{'english output':<22}")
     print("-" * 110)
@@ -232,13 +251,14 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 8, seed: int = 0):
     for N in RUNGS[1:]:
         id2 = dict(seed_id2)
         tgt2 = dict(seed_tgt2)
+        init = dict(seed_init)
         for i, s, b in cands[:N]:
             if i in vmap and i not in id2:
                 _, t_ = vmap[i]
                 id2[i] = " " + t_
                 tgt2.setdefault(" " + t_, i)
                 tgt2.setdefault(" " + t_.capitalize(), i)
-        c = Codec(id2, tgt2)
+        c = Codec(id2, tgt2, init)
         hits, match, covs, rows = 0, 0, [], []
         for p in SEED_PROMPTS:
             ids = c.encode(p["nl"])
