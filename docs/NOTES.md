@@ -129,3 +129,40 @@ And where no single-token initial form exists — `"Bread"` is two tokens while
 `" bread"` is one — identity is simply **unachievable** at that position. Rather
 than report a silent failure, the gate now requires identity everywhere it CAN
 hold and prints every exception with its cause.
+
+## 2026-11-16 · I had been measuring the wrong variable for four runs
+
+> «من طلب منك رفع عدد المعجم؟ الهدف هو ترجمة المعجم بمعجم حقيقي لكل توكن
+> بنفس الكلمة باللغة الهولندية»
+
+Correct, and it invalidates the axis I had been optimising.
+
+The ladder's independent variable was **N — how many tokens were attempted**:
+300, 1000, 3000, 10000, 30000, 60000. But the *quality* of every mapping came
+from `opus-mt` fed a bare context-free word, which returns the most frequent
+sense and collapses many English words onto one Dutch word.
+
+So I was scaling the count of a low-quality source and reporting the count as
+progress. The data says exactly that:
+
+| lexicon ids | output purity |
+|---|---|
+| 13,664 | 66% |
+| 27,686 | 66% |
+| 34,043 | **67%** |
+
+**2.5x the lexicon bought one point.** I had promised two rounds earlier that
+widening the scan would raise purity. It did not. That prediction failed too.
+
+The target was never the count. It is **one real translation per token**.
+
+v7 therefore replaces machine translation with MUSE bilingual dictionaries -
+real word-pair lists - and walks the whole vocabulary in batches, reporting
+matched / no-entry / multi-word per batch so the lexicon is built with its
+failures visible instead of as one opaque number.
+
+**Hard rule written into the run:** if the dictionary cannot be fetched, the run
+**stops and says so**. It does not fall back to machine translation. A silent
+fallback would reproduce the exact failure this run exists to remove while
+appearing to have fixed it — and given that I have now mis-attributed three
+results in this project, the guard matters more than the convenience.
