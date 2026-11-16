@@ -351,7 +351,17 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     dbg = []
     ranks = []
     pmi_alt = []
-    PMI = True        # lambda = 1; the alternative is scored alongside
+    # MEASURED AND REVERTED. PMI scored 6/50 against the raw scoring's 13/50,
+    # and the in-run comparison was explicit: "the same slots under the
+    # previous scoring would have scored 13/22".
+    #
+    # Subtracting the unconditional probability OVER-corrects. The frequency
+    # bias is real - `bought` did beat `reads` on frequency - but the model
+    # needs some of that bias to reject rare words the context barely
+    # supports, and removing it promoted exactly those.
+    #
+    # The machinery stays so the comparison keeps being reported every run.
+    PMI = False
     DEBUG_IDS = set(range(1, 51))
 
     def same_lemma(a, b):

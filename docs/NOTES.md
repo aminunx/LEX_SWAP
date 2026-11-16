@@ -977,3 +977,28 @@ quantity under test.* That was followed every round and was not enough.
 
 > **A system with two paths needs one criterion.** Otherwise it does not measure
 > itself - it measures which path a prompt happened to take.
+
+## 2026-11-16 · PMI corrected a real bias and made things worse
+
+```
+raw scoring   13/50
+PMI scoring    6/50
+in-run check: "the same slots under the previous scoring would have scored 13/22"
+```
+
+The diagnosis was right and the cure was wrong. The correct answer sits in the
+top three 41% of the time and is chosen 27%, so ranking is the loss; and
+`bought` really does beat `reads` on raw frequency rather than on fit.
+
+But subtracting the unconditional probability **over-corrects**. The model needs
+some of that frequency bias to reject rare words the context barely supports,
+and removing it promoted precisely those.
+
+**The protocol is what makes this cheap.** Both scorings were computed from the
+same forward pass in the same run, so the comparison has one variable and
+nothing else could have drifted. Four earlier rounds in this project were
+misread because a figure was compared across runs while something else had
+moved; this one could not be.
+
+Reverted, with the comparison machinery left in place so every future run keeps
+reporting what the alternative would have scored.
