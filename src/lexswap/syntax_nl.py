@@ -140,7 +140,33 @@ FINITE_VERBS = {"is", "was", "zijn", "waren", "heeft", "hebben", "had",
                 "moest", "bleef", "bleven", "stond", "zat", "lag", "liep",
                 "kocht", "las", "schreef", "hoorde", "voelde", "dacht",
                 "vond", "maakte", "zette", "bracht", "stuurde", "speelde",
-                "werkte", "woonde", "leerde", "bouwde", "opende"}
+                "werkte", "woonde", "leerde", "bouwde", "opende",
+                # present modals, omitted when this set replaced the suffix
+                # guess. `Als je morgen komt zal ik je` kept `zal ik`
+                # inverted because `zal` was in neither the set nor the
+                # suffix list. Replacing an estimate with a definition only
+                # helps if the definition is complete.
+                "zal", "zult", "zullen", "wil", "wilt", "willen",
+                "kan", "kunt", "kunnen", "mag", "mogen", "moet", "moeten",
+                "ga", "gaat", "gaan", "komt", "komen", "doe", "doet"}
+
+
+def fix_subordinate_verb(w, low):
+    """Leading subordinate clause with the verb last -> verb after subject.
+
+        Als je morgen komt zal ik je ___  ->  Als je komt morgen zal ik je ___
+
+    English puts the verb straight after the subject inside the clause too, not
+    only in the main clause. Without this the template read "If you tomorrow
+    comes ...".
+    """
+    if low[0] not in SUBORDINATORS and low[0] not in FRONTED:
+        return None
+    for j in range(2, min(len(w) - 1, 6)):
+        if low[j] in FINITE_VERBS and j >= 3:
+            # w[1] is the subject, w[2:j] the adverbial, w[j] the verb
+            return w[:2] + [w[j]] + w[2:j] + w[j + 1:]
+    return None
 
 
 def fix_main_clause_inversion(w, low):
@@ -191,6 +217,18 @@ def reorder(text):
     if len(w) < 3:
         return None
     low = [x.lower() for x in w]
+
+    # REVERTED: hoisting both fixers to the top and running them in sequence
+    # corrupted the order. fix_subordinate_verb moves the verb, and
+    # fix_main_clause_inversion then operated on the moved list and swapped the
+    # wrong pair: `Als je morgen komt zal ik je` became
+    # `Als je komt ik morgen zal je`, and one rule stopped firing entirely.
+    #
+    # Two repairs that are each correct alone are not composable just because
+    # both are correct - the second reads positions the first has already
+    # changed. Normalising first is still the right shape, but it needs the
+    # fixers rewritten to operate on CLAUSE SPANS rather than on raw indices,
+    # which is a larger change than this round can verify.
 
     # a nominal slot gets no verb rule at all - fall through to plain
     # generation, which handles a final slot correctly
