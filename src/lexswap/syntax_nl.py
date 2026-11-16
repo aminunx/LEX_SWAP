@@ -78,6 +78,31 @@ def _split(text):
     return [w for w in text.strip().split(" ") if w]
 
 
+# A slot's category is decided by what the prompt ENDS with, before any
+# construction rule gets a say. v18 lost four prompts outright because R1/R4
+# fired a verb rule on prompts whose slot is plainly a noun:
+#   `Als het regent nemen wij de`   -> after an article comes a NOUN
+#   `Nadat zij at ging zij naar`    -> after a preposition comes a NOUN
+#   `Omdat het regende bleven wij`  -> the verb `bleven` is already there
+# Restricting candidates to verbs there made success impossible.
+DETERMINERS = {"de", "het", "een", "deze", "die", "dit", "dat", "mijn",
+               "zijn", "haar", "ons", "onze", "hun", "jouw", "uw"}
+PREPOSITIONS = {"naar", "in", "op", "met", "van", "aan", "bij", "voor",
+                "over", "onder", "tussen", "tegen", "door", "uit", "om",
+                "zonder", "achter", "naast", "binnen", "buiten"}
+# adverbs that end in -t and so slipped through the finite-verb filter
+ADVERB_T = {"echt", "recht", "direct", "vaak", "niet", "wat", "dicht",
+            "licht", "zacht", "hard", "goed", "slecht", "juist", "meest"}
+
+
+def slot_is_nominal(text):
+    """True when the next word cannot be a verb, from the last word alone."""
+    w = _split(text)
+    if not w:
+        return False
+    return w[-1].lower() in DETERMINERS or w[-1].lower() in PREPOSITIONS
+
+
 def reorder(text):
     """Dutch prompt -> (prefix, suffix, slot_kind) in English order.
 
@@ -91,6 +116,13 @@ def reorder(text):
         return None
     low = [x.lower() for x in w]
 
+    # a nominal slot gets no verb rule at all - fall through to plain
+    # generation, which handles a final slot correctly
+    if slot_is_nominal(text):
+        if low[0] in FRONTED and len(w) >= 3 and low[2] in PRONOUNS                 and low[1] not in PRONOUNS:
+            return ([w[0], w[2], w[1]] + w[3:], [], "final")
+        return None
+
     # R1 - verb-final subordinate clause.
     #   Ik weet dat hij het boek ___   ->  Ik weet dat hij ___ het boek
     # The subordinator is followed by a subject and then an object, with no
@@ -99,6 +131,10 @@ def reorder(text):
     for i, x in enumerate(low):
         if x in SUBORDINATORS and i + 2 < len(w):
             rest = low[i + 1:]
+            # a finite verb already present means the slot is not the verb
+            if any(r.endswith(("en", "t")) and r not in PRONOUNS
+                   and r not in DETERMINERS and len(r) > 3 for r in rest):
+                continue
             if not any(r in PERFECT_AUX or r in MODALS for r in rest):
                 subj_end = i + 2
                 if rest[0] in PRONOUNS or (len(rest) > 1 and rest[0] in
@@ -175,7 +211,7 @@ def build_candidates(slot_kind, lexicon_nl_words, limit=400, subject=None):
     # `een` ends in -en and would pass the infinitive test; `de`, `het`, `te`
     # and friends pass the verb test. The commonest words in the language beat
     # any real verb on probability, so they must be excluded by name.
-    STOP = {"een", "de", "het", "te", "en", "die", "dat", "dit", "deze",
+    STOP = ADVERB_T | {"een", "de", "het", "te", "en", "die", "dat", "dit", "deze",
             "van", "in", "op", "aan", "met", "voor", "naar", "om", "bij",
             "als", "of", "ook", "niet", "nog", "maar", "zijn", "er", "ze",
             "we", "je", "ik", "hij", "wij", "men", "u", "me", "mij"}

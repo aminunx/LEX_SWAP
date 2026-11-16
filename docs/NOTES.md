@@ -856,3 +856,43 @@ speaker would write. The rule now moves adverbials to the end of the tail.
 Both verified locally before pushing - `had`/`was`/`lezen` excluded from
 participle slots, and all three perfect-tense prompts reordered with the
 adverbial last.
+
+## 2026-11-16 · v18: 24%, and a rule class that guaranteed failure
+
+```
+lexical  4%  ->  syntax 24%  ->  oracle 30%
+```
+
+The gap to oracle narrowed from 14 points to 6. Grouping the misses by rule
+pointed straight at the biggest one: `verb` slots, 14 misses.
+
+Reading those rows found four prompts that **could not** succeed:
+
+| prompt | expected | what the rule did |
+|---|---|---|
+| `Als het regent nemen wij de` | `trein` (noun) | restricted candidates to verbs |
+| `Nadat zij at ging zij naar` | `bed` (noun) | verbs |
+| `Omdat het regende bleven wij` | `thuis` (adverb) | verbs |
+| `Omdat het regent blijft hij` | `thuis` | verbs |
+
+The signal was sitting in plain sight and I never used it: **a prompt ending in
+an article or a preposition cannot be followed by a verb.** And in two of them
+the finite verb - `bleven`, `blijft` - is already in the sentence, so the verb
+slot was filled before the rule fired.
+
+> **A rule decided the slot's category from the construction and ignored what
+> the prompt ends with.** Restricting a nominal slot to verbs makes success
+> impossible, and the row still shows a rule name as though it worked.
+
+Fixed with a category guard that runs BEFORE any construction rule, a check
+that R1 does not fire when the clause already has its finite verb, and an
+adverb stop-list for words like `echt` that end in `-t` and slipped through the
+finite-verb filter.
+
+**Rule coverage fell from 47/50 to 43/50, and that is the improvement.** Four
+rules were firing wrongly; not firing is strictly better than firing on the
+wrong category.
+
+> **Coverage is not a goal.** A rule applied to the wrong slot category
+> guarantees failure and looks, in the results table, exactly like a rule that
+> worked.
