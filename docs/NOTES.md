@@ -263,3 +263,49 @@ break the identity gate for no gain.
 artefacts.** The 0.30 anchor, the word-order wall, and now this ceiling. Each
 was caught by reading the examples behind the aggregate rather than the
 aggregate alone.
+
+## 2026-11-16 · v9: purity 0.701 -> 0.943, and the gap list exposed the resource
+
+Three fixes landed and output purity went from 0.701 to **0.943**, with 7
+un-rendered tokens out of 158. Accuracy stayed at the ceiling, ids 34/36,
+coverage 100%, weights unchanged.
+
+Then the frequency-ranked gap list said something I had not expected:
+
+```
+th in to re of st is be on de wh if it as al an or tr ex se le at ch pr by
+```
+
+**`in to of is be on if it as an or at by he we us do up go` are ordinary
+English function words, and MUSE contains none of them.** The 82,167-headword
+file is built by word alignment and curated for bilingual lexicon induction, so
+the closed-class core of the language is partly absent. The hand supplement is
+not a garnish on the dictionary - it is load-bearing.
+
+## 2026-11-16 · A collision inside my own supplement
+
+` It` stayed untranslated. Cause: `SEED_NL` holds `het -> the`, my supplement
+added `het -> it`, and `setdefault` dropped it. Dutch `het` genuinely carries
+both senses, so this is not a mistake in the data - it is the same collision
+problem one level up, in hand-written material this time.
+
+And the fix is the same lesson: **a collision constrains input only.** On output
+`id(" it")` renders as `" het"` while `id(" the")` also renders as `" het"`,
+with no conflict at all. Hence a `DEC_ONLY` table.
+
+That makes three places where the input/output asymmetry mattered - dictionary
+collisions, the v7 discarded renderings, and now the hand supplement. It is the
+single most productive idea in this project and I failed to generalise it twice
+after learning it once.
+
+## 2026-11-16 · Where the residual is genuinely correct
+
+`key` came back un-rendered. MUSE has `key -> sleutel`, so it looks like a gap.
+It is not: this `key` is the continuation piece of `monkey`, and rendering it as
+`sleutel` would be **wrong**.
+
+> A token with no leading space is a piece, not a word, whatever its shape.
+
+So `continuation_piece` residual is not a shortfall to be driven to zero. Part
+of the remaining 4% is the metric correctly declining to do something harmful,
+and a run that reported 100% purity would be reporting a bug.
