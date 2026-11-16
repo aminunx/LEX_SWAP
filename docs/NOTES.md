@@ -549,3 +549,31 @@ would have failed on its first multi-token word. Caught only because v14
 exercised the same code path. **An artefact that is committed is not an artefact
 that has been run** - and nothing in the delivery commit had actually executed
 the wrapper.
+
+## 2026-11-16 · v14 run 2: two bugs, and one of them was a lie about capability
+
+**OOM, 15.85 GiB requested.** The candidate-selection loop broke on
+`len(cids) >= n_cand AND exp in cws`, so whenever the expected answer was not
+in the pool it never broke at all and the list grew to 4,000. Full logits are
+candidates x length x 151,936 vocab, which is about 29 GB. Fixed with an
+unconditional cap and chunked scoring, so memory no longer depends on the
+candidate count.
+
+**And the one that matters: `build_candidates` was written and never called.**
+
+The visible syntax-arm outputs were `een`, `de`, `is`, `ik` - function words
+where verbs were wanted. The pool was the first 4,000 Dutch surface forms in
+dictionary order, unfiltered, so the scorer did its job correctly and picked the
+most probable words in the language.
+
+The syntax arm therefore scored *below* the lexical arm on prompt 2, and had I
+read only the totals I would have concluded **"the syntax layer does not help"**
+and abandoned the right idea for a reason that was a missing function call.
+
+> A function that is written but never called is worse than one that was never
+> written: the first makes you believe the capability is present.
+
+That is now the fifth result in this project that would have been
+mis-attributed by reading an aggregate instead of its examples. The pattern is
+no longer a coincidence, and it belongs in the methodology as its first rule
+rather than its last.

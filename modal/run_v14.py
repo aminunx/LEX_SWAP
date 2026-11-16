@@ -57,7 +57,7 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     from src.lexswap.grammar_nl import apply_article_agreement
     from src.lexswap.natural_nl import NATURAL_NL
     from src.lexswap.reassemble import render as render_words
-    from src.lexswap.syntax_nl import reorder
+    from src.lexswap.syntax_nl import build_candidates, reorder
 
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     tok = AutoTokenizer.from_pretrained(model_id)
@@ -113,7 +113,21 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         return o[0, len(ids):].tolist()
 
     @torch.no_grad()
-    def score_slot(prefix_ids, suffix_ids, cand_ids):
+    def score_slot(prefix_ids, suffix_ids, cand_ids, chunk: int = 32):
+        """Chunked so memory does not depend on the candidate count.
+
+        The first v14 run asked for 15.85 GiB: full logits are
+        candidates x length x 151,936 vocab, so 4,000 candidates is ~29 GB.
+        Bounded here at `chunk` rows per forward.
+        """
+        outs = []
+        for k in range(0, len(cand_ids), chunk):
+            outs.append(_score_chunk(prefix_ids, suffix_ids,
+                                     cand_ids[k:k + chunk]))
+        return torch.cat(outs)
+
+    @torch.no_grad()
+    def _score_chunk(prefix_ids, suffix_ids, cand_ids):
         """Mean log-prob of [prefix, candidate, suffix] for each candidate.
 
         Batched: one forward over all candidates. The candidate and the suffix
@@ -169,19 +183,21 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                 syn_hit = exp.lower() in syn_out.lower()
             else:
                 pre_ids, suf_ids = enc_words(pre), enc_words(suf)
-                pool = [w for w in cand_words][:4000]
-                if exp not in pool:
-                    pool.append(exp)
+                # restrict by the category the slot wants - an unfiltered pool
+                # is dominated by function words and the scorer picks `de`
+                pool = build_candidates(kind, cand_words, limit=n_cand)
                 cids, cws = [], []
                 for w in pool:
                     t = nl2id.get(w.lower())
-                    if t is not None:
-                        cids.append(t)
-                        cws.append(w)
-                    if len(cids) >= n_cand and exp in cws:
+                    if t is None or t in cids:
+                        continue
+                    cids.append(t)
+                    cws.append(w)
+                    if len(cids) >= n_cand:      # HARD cap, unconditional
                         break
-                if exp in nl2id and nl2id[exp.lower()] not in cids:
-                    cids.append(nl2id[exp.lower()])
+                te = nl2id.get(exp.lower())      # the answer must be reachable
+                if te is not None and te not in cids:
+                    cids.append(te)
                     cws.append(exp)
                 sc = score_slot(pre_ids, suf_ids, cids)
                 best = int(torch.argmax(sc))
@@ -194,8 +210,10 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
             pre, suf, _ = r
             t_exp = nl2id.get(exp.lower())
             if t_exp is not None:
-                distract = [nl2id[w.lower()] for w in cand_words[:60]
-                            if w.lower() in nl2id][:20]
+                pool = build_candidates(r[2], cand_words, limit=40)
+                distract = [nl2id[w.lower()] for w in pool
+                            if w.lower() in nl2id and
+                            nl2id[w.lower()] != t_exp][:20]
                 sc = score_slot(enc_words(pre), enc_words(suf),
                                 [t_exp] + distract)
                 orc_hit = bool(int(torch.argmax(sc)) == 0)
