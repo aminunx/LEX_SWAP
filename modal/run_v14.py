@@ -205,6 +205,20 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         parts = render_words(ids, lambda t: tok.decode([t]), id2, en2nl_lookup)
         return "".join(apply_article_agreement(parts))
 
+    def first_word(text):
+        """First alphabetic word of a continuation.
+
+        The generation path was credited whenever the expected word appeared
+        anywhere in ten generated tokens, while the scoring path had to pick it
+        exactly, first try. Comparing the two under those two rules measured
+        the rules, not the paths.
+        """
+        for tok_ in text.replace(".", " ").replace(",", " ").split():
+            w = "".join(c for c in tok_ if c.isalpha())
+            if w:
+                return w
+        return ""
+
     @torch.no_grad()
     def decode_constrained(prefix_ids, expected=None, depth=5000):
         """Model ranking over the whole vocabulary, first Dutch-renderable hit.
@@ -341,13 +355,15 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         exp = p["exp"]
         # ---- arm 1: v13 behaviour
         lex_out = dec(generate(enc_words(p["nl"].split(" "))))
-        lex_hit = exp.lower() in lex_out.lower()
+        lex_hit_loose = exp.lower() in lex_out.lower()
+        lex_hit = first_word(lex_out).lower() == exp.lower()
 
         # ---- arm 2: syntax layer
         r = reorder(p["nl"])
         rule = "-"
         if r is None:
             syn_out, syn_hit = lex_out, lex_hit
+            syn_hit_loose = lex_hit_loose
         else:
             pre, suf, kind = r
             rule = kind
@@ -360,6 +376,7 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                 pre_ids = enc_words(pre, first=True)
                 syn_out, rk = decode_constrained(pre_ids, exp)
                 syn_hit = syn_out.lower() == exp.lower()
+                syn_hit_loose = syn_hit
                 ranks.append({"id": p["id"], "rank": rk,
                               "n_cand": len(id2), "expected": exp,
                               "top1": syn_out})
@@ -392,6 +409,7 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                 best = int(torch.argmax(sc))
                 syn_out = cws[best]
                 syn_hit = syn_out.lower() == exp.lower()
+                syn_hit_loose = syn_hit
                 # where does the CORRECT answer actually rank?
                 order = torch.argsort(sc, descending=True)
                 rank = None
@@ -438,6 +456,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         lemma_hit = bool(syn_hit) or bool(
             r is not None and bool(r[1]) and isinstance(syn_out, str)
             and same_lemma(syn_out, exp))
+        res["lexical_loose"] = res.get("lexical_loose", 0) + lex_hit_loose
+        res["syntax_loose"] = res.get("syntax_loose", 0) + syn_hit_loose
         res["lexical"] += lex_hit
         res["syntax"] += syn_hit
         res["oracle"] += orc_hit
@@ -494,6 +514,18 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     print("  found and outranked - the prompt has several valid fillers, which")
     print("  is a test-design problem, not a model one. A small gap means the")
     print("  answer is genuinely not being found, which is a template problem.")
+    print("  --- STRICT: first content word, exact match, both paths ---")
+    print("  lexical {:>3}/{}  {:.0%}     syntax {:>3}/{}  {:.0%}".format(
+        res["lexical"], n, res["lexical"] / n,
+        res["syntax"], n, res["syntax"] / n))
+    print("  --- LOOSE: expected word anywhere in the continuation ---")
+    print("  lexical {:>3}/{}  {:.0%}     syntax {:>3}/{}  {:.0%}".format(
+        res.get("lexical_loose", 0), n, res.get("lexical_loose", 0) / n,
+        res.get("syntax_loose", 0), n, res.get("syntax_loose", 0) / n))
+    print("  Every figure reported in this project before now was the LOOSE")
+    print("  rule for generated prompts and the STRICT rule for scored ones,")
+    print("  so each new rule moved prompts to the harsher criterion and")
+    print("  looked worse than it was.")
     print("  a reorder rule matched  {:>3}/{}   {:.0%}".format(mr, n, mr / n))
     print("  [diagnostic] same verb stem, wrong inflection counted as a hit:"
           "  {:>3}/{}   {:.0%}".format(res["lemma"], n, res["lemma"] / n))
@@ -540,6 +572,8 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
                "oracle_acc": round(res["oracle"] / n, 3),
                "lemma_diagnostic": round(res["lemma"] / n, 3),
                "ranks": ranks,
+               "lexical_loose": res.get("lexical_loose", 0),
+               "syntax_loose": res.get("syntax_loose", 0),
                "topk": {str(k): sum(1 for r in ranks
                                     if r["rank"] is not None and r["rank"] <= k)
                         for k in (1, 3, 5, 10)},
