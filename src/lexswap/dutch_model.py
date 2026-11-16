@@ -145,6 +145,93 @@ class DutchQwen:
                                       pad_token_id=self.tok.eos_token_id)
         return self.decode(out[0, len(ids):].tolist())
 
+    # ------------------------------------------------- the syntax layer
+    def generate_natural(self, dutch_prompt: str, n_cand: int = 300):
+        """Answer naturally written Dutch, using the syntax layer.
+
+        `generate` substitutes words and leaves them where they sit, which is
+        4% accurate on natural Dutch. This reorders the prompt into English
+        order first, and where that moves the predicted word off the end it
+        scores candidates in the slot instead of generating - 24%, six times
+        better.
+
+        Shipping `generate` alone meant the delivered artefact was the 4%
+        system while the 24% one existed only in the experiment runner. That
+        gap between what was measured and what was handed over is now closed.
+        """
+        from .syntax_nl import build_candidates, reorder
+
+        r = reorder(dutch_prompt)
+        if r is None:
+            return self.generate(dutch_prompt)
+        pre, suf, kind = r
+        if kind == "final" or not suf:
+            return self.generate(" ".join(pre))
+
+        pre_ids = self._enc_words(pre, first=True)
+        suf_ids = self._enc_words(suf, first=False)
+        subj = pre[-1] if pre else None
+        pool = build_candidates(kind, [w.strip() for w in self.mid
+                                       if w.strip().isalpha()],
+                                limit=n_cand, subject=subj)
+        cids, cws = [], []
+        for w in pool:
+            t = self.mid.get(" " + w.lower()) or self.mid.get(" " + w)
+            if t is None or int(t) in cids:
+                continue
+            cids.append(int(t))
+            cws.append(w)
+            if len(cids) >= n_cand:
+                break
+        if not cids:
+            return self.generate(dutch_prompt)
+        sc = self._score_slot(pre_ids, suf_ids, cids)
+        return cws[int(sc.argmax())]
+
+    def _enc_words(self, words, first=True):
+        ids = []
+        for k, w in enumerate(words):
+            if k == 0 and first:
+                got = self.init.get(w) or self.init.get(w.lower())
+            else:
+                got = (self.mid.get(" " + w) or self.mid.get(" " + w.lower())
+                       or self.mid.get(" " + w.capitalize()))
+            if got is not None:
+                ids.append(int(got))
+            else:
+                ids.extend(self.tok.encode(
+                    w if (k == 0 and first) else " " + w,
+                    add_special_tokens=False))
+        return ids
+
+    def _score_slot(self, prefix_ids, suffix_ids, cand_ids, chunk=32):
+        """Mean log-prob of [prefix, candidate, suffix], chunked for memory."""
+        outs = []
+        for k in range(0, len(cand_ids), chunk):
+            outs.append(self._score_chunk(prefix_ids, suffix_ids,
+                                          cand_ids[k:k + chunk]))
+        return self.torch.cat(outs)
+
+    def _score_chunk(self, prefix_ids, suffix_ids, cand_ids):
+        torch = self.torch
+        rows = [prefix_ids + [c] + suffix_ids for c in cand_ids]
+        L = max(len(r) for r in rows)
+        pad = self.tok.eos_token_id
+        x = torch.full((len(rows), L), pad, device=self.device,
+                       dtype=torch.long)
+        m = torch.zeros((len(rows), L), device=self.device, dtype=torch.long)
+        for i, r in enumerate(rows):
+            x[i, : len(r)] = torch.tensor(r, device=self.device)
+            m[i, : len(r)] = 1
+        with torch.no_grad():
+            lg = self.model(input_ids=x, attention_mask=m).logits.float()
+        lp = torch.log_softmax(lg[:, :-1], -1)
+        got = lp.gather(2, x[:, 1:].unsqueeze(2)).squeeze(2)
+        keep = m[:, 1:].float()
+        start = max(len(prefix_ids) - 1, 0)
+        keep[:, :start] = 0
+        return (got * keep).sum(1) / keep.sum(1).clamp_min(1)
+
     # ------------------------------------------------------------------ checks
     def verify_weights_untouched(self) -> bool:
         """True if the weights are bit-identical to what was loaded.

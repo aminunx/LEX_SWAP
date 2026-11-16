@@ -19,20 +19,41 @@ measured 2026-11-16
 | prompt style | input coverage | output purity | **accuracy** | English ceiling |
 |---|---|---|---|---|
 | word-order parallel to English | 100% | **99.6%** | **64%** | 61% |
-| naturally written Dutch, lexicon only | 90.1% | 94.1% | 10% | — |
-| **naturally written Dutch, + syntax layer** | 100% | 94.1% | **15%** | — |
+| naturally written Dutch, lexicon only | 100% | 94.1% | **4%** | — |
+| **naturally written Dutch, + syntax layer** | 100% | 94.1% | **24%** | — |
+
+Natural-Dutch figures are on a 50-prompt set. The original 20-prompt set is
+retained and scored separately: one prompt there is 5%, wider than any effect
+the fixes produce, and reading results off it made a real gain look like noise
+for nine runs.
 
 A syntax layer was built after the first natural-Dutch result: Dutch is
 reordered into English order before the lexical map, and where that moves the
 predicted word off the end the model is used as a **scorer** over candidates in
 the slot rather than as a generator. Still no training, still no weight edits.
 
-It helps — 15% against 10% — which refutes the earlier claim that word order was
-unreachable without training. But on twenty prompts that difference is **one
-prompt**, and an `oracle` arm that scores the correct answer against only twenty
-distractors still wins just 6/20. **Even perfect rules leave scoring picking
-right under a third of the time**, because an English-order model cannot be made
-to choose Dutch inflections reliably.
+**It takes natural Dutch from 4% to 24% — six times** — which refutes the
+earlier claim that word order was unreachable without training.
+
+Every step of that came from reading the **intermediate representation** rather
+than the outputs: the English token sequence the model is actually fed.
+
+| | natural Dutch |
+|---|---|
+| lexicon only | 4% |
+| + reorder and score the slot | 18% |
+| + tighter Dutch morphology per slot | 20% |
+| + adverbials last, as English wants | 24% |
+| + slot-category guard, inversion repair | 24% |
+| `oracle` (answer vs 20 weak distractors) | **26%** |
+
+**The design is now saturated, and that is measured rather than judged.**
+`syntax` at 24% sits two points under `oracle` at 26%, so even against weak
+competition the correct answer wins only about a quarter of the time. The
+bottleneck is no longer the rules or the candidate pool — rule coverage is
+49/50 — it is that an English-order model cannot be made to choose Dutch
+inflections reliably. Closing the rest needs training on word order, and the
+value of this work is that it bounds how little might be required.
 
 **Both rows are true. Neither may be quoted alone.**
 
