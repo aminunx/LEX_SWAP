@@ -68,7 +68,18 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         lex = json.load(f)
     id2 = {int(k): v for k, v in lex["decode"].items()}
     mid, init = lex["encode_mid"], lex["encode_initial"]
-    nl2id = {k.strip().lower(): int(v) for k, v in mid.items()}
+    # `mid` holds both " leest" -> id(" reads") and " Leest" -> id(" Reads").
+    # Collapsing with .strip().lower() let the CAPITALISED id win, so every
+    # candidate - including the correct answer - was scored mid-sentence in its
+    # sentence-initial form: "I know that he Reads the book". That is why the
+    # oracle arm scored 5%: the approach was never tested, only mis-fed.
+    nl2id = {}
+    for k, v in mid.items():
+        w = k.strip()
+        if w and w.islower():
+            nl2id[w] = int(v)
+    for k, v in mid.items():          # fall back to any form for gaps
+        nl2id.setdefault(k.strip().lower(), int(v))
 
     def en2nl_lookup(w):
         """English word -> Dutch word, via the token id.

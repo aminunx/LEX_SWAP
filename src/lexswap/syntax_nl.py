@@ -122,10 +122,17 @@ def build_candidates(slot_kind, lexicon_nl_words, limit=400):
     Scoring every word in a 24,000-entry lexicon per prompt is wasteful and
     noisy. Dutch verb and participle shapes are regular enough to filter on.
     """
+    # `een` ends in -en and would pass the infinitive test; `de`, `het`, `te`
+    # and friends pass the verb test. The commonest words in the language beat
+    # any real verb on probability, so they must be excluded by name.
+    STOP = {"een", "de", "het", "te", "en", "die", "dat", "dit", "deze",
+            "van", "in", "op", "aan", "met", "voor", "naar", "om", "bij",
+            "als", "of", "ook", "niet", "nog", "maar", "zijn", "er", "ze",
+            "we", "je", "ik", "hij", "wij", "men", "u", "me", "mij"}
     out = []
     for word in lexicon_nl_words:
         lw = word.strip().lower()
-        if len(lw) < 2 or not lw.isalpha():
+        if len(lw) < 2 or not lw.isalpha() or lw in STOP:
             continue
         if slot_kind == "participle":
             if lw.startswith("ge") or lw.endswith(("en", "d", "t")):

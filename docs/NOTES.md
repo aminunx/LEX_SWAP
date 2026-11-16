@@ -577,3 +577,48 @@ That is now the fifth result in this project that would have been
 mis-attributed by reading an aggregate instead of its examples. The pattern is
 no longer a coincidence, and it belongs in the methodology as its first rule
 rather than its last.
+
+## 2026-11-16 · v14 run 3: the oracle arm earned its place
+
+```
+lexical only (v13)      2/20   10%
++ syntax layer          2/20   10%
+oracle slot (bound)     1/20    5%
+```
+
+`oracle` **below** `syntax`. The oracle scores the correct answer against only
+20 distractors, so failing there means the scoring was never working - and that
+is a different problem from the reordering rules.
+
+Reading the examples found it, in my code:
+
+```python
+nl2id = {k.strip().lower(): int(v) for k, v in mid.items()}
+```
+
+`mid` holds both `" leest" -> id(" reads")` and `" Leest" -> id(" Reads")`.
+Collapsing the key with `.strip().lower()` let the **capitalised** id win, so
+every candidate - the correct answer included - was scored mid-sentence in its
+sentence-initial form:
+
+```
+I know that he Reads the book      what was actually scored
+I know that he reads the book      what was intended
+```
+
+So the 5% oracle was not a bound on the approach. **The approach had never been
+tested** - it had been fed corrupted inputs, and the correct answer was
+corrupted along with the distractors.
+
+**Without the oracle arm I would have read `syntax == lexical` and concluded
+that scoring does not work, and abandoned a correct idea.** That arm was
+pre-registered for exactly this and it is the only reason the distinction
+between "the method fails" and "the experiment is broken" was available.
+
+Second fix in the same place: `een` ends in `-en` and passed the infinitive
+filter, `de` passed the verb filter. The commonest words in the language beat
+any real verb on probability, so they are now excluded by name rather than by
+suffix shape.
+
+Sixth mis-attribution caught by examples rather than aggregates. In all six the
+fault was in my measurement code, never in the method under test.
