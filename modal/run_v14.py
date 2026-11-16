@@ -206,6 +206,37 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
         return "".join(apply_article_agreement(parts))
 
     @torch.no_grad()
+    def decode_constrained(prefix_ids, expected=None, depth=5000):
+        """Model ranking over the whole vocabulary, first Dutch-renderable hit.
+
+        Generation picks the globally most likely token and most tokens have no
+        Dutch rendering. A fixed 300-word pool guarantees Dutch but ignores
+        context - `werk`, an extremely common word, was "never in the candidate
+        pool". This keeps both: rank everything the model knows, take the best
+        token the lexicon can actually render.
+
+        Also returns the rank of `expected` among Dutch-renderable tokens, so
+        the top-k diagnostic stays comparable with the mid-sentence slots.
+        """
+        x = torch.tensor([prefix_ids], device=dev)
+        lp = torch.log_softmax(model(input_ids=x).logits[0, -1].float(), -1)
+        order = torch.argsort(lp, descending=True)[:depth].tolist()
+        want = nl2id.get((expected or "").lower())
+        best, rank, seen = None, None, 0
+        for t in order:
+            if t not in id2:
+                continue
+            seen += 1
+            if best is None:
+                best = id2[t].strip()
+            if want is not None and t == want and rank is None:
+                rank = seen
+            if best is not None and (want is None or rank is not None):
+                break
+        return (best or ""), rank
+
+
+    @torch.no_grad()
     def generate(ids):
         x = torch.tensor([ids], device=dev)
         o = model.generate(x, max_new_tokens=max_new, do_sample=False,
@@ -321,39 +352,17 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
             pre, suf, kind = r
             rule = kind
             if kind == "final" or not suf:
-                # score the restricted Dutch candidates instead of generating
-                # freely over the whole vocabulary - see the note above.
+                # CONSTRAINED DECODING: the model's own ranking over the whole
+                # vocabulary, walked down to the first token that has a Dutch
+                # rendering. Keeps the model's knowledge AND the guarantee that
+                # the output is Dutch - a fixed 300-word pool threw the first
+                # away to buy the second.
                 pre_ids = enc_words(pre, first=True)
-                pool = build_candidates("final", cand_words, limit=n_cand)
-                cids, cws = [], []
-                for cw in pool:
-                    ct = nl2id.get(cw.lower())
-                    if ct is None or ct in cids:
-                        continue
-                    cids.append(ct)
-                    cws.append(cw)
-                    if len(cids) >= n_cand:
-                        break
-                te2 = nl2id.get(exp.lower())
-                if te2 is not None and te2 not in cids:
-                    cids.append(te2)
-                    cws.append(exp)
-                if cids:
-                    sc = score_slot(pre_ids, [], cids)
-                    syn_out = cws[int(torch.argmax(sc))]
-                    syn_hit = syn_out.lower() == exp.lower()
-                    order = torch.argsort(sc, descending=True)
-                    rk = None
-                    for pos, j in enumerate(order.tolist()):
-                        if cws[j].lower() == exp.lower():
-                            rk = pos + 1
-                            break
-                    ranks.append({"id": p["id"], "rank": rk,
-                                  "n_cand": len(cids), "expected": exp,
-                                  "top1": syn_out})
-                else:
-                    syn_out = dec(generate(enc_words(pre)))
-                    syn_hit = exp.lower() in syn_out.lower()
+                syn_out, rk = decode_constrained(pre_ids, exp)
+                syn_hit = syn_out.lower() == exp.lower()
+                ranks.append({"id": p["id"], "rank": rk,
+                              "n_cand": len(id2), "expected": exp,
+                              "top1": syn_out})
             else:
                 pre_ids = enc_words(pre, first=True)
                 suf_ids = enc_words(suf, first=False)   # mid-sentence
