@@ -232,7 +232,7 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     res = {"lexical": 0, "syntax": 0, "oracle": 0, "lemma": 0}
     rows = []
     dbg = []
-    DEBUG_IDS = {1, 2, 7, 16}
+    DEBUG_IDS = set(range(1, 51))
 
     def same_lemma(a, b):
         """Diagnostic only: do these share a Dutch verb stem?
@@ -387,17 +387,17 @@ def run(model_id: str = "Qwen/Qwen2.5-0.5B", max_new: int = 10,
     print(BAR)
     print("WHAT THE MODEL ACTUALLY SEES - the intermediate representation")
     print(BAR)
+    print("  the ENGLISH the model is scored on, for every template")
+    print("  {:>3} {:<52} {:<11} {:<11}".format(
+        "#", "english template", "want", "top1"))
+    print("  " + "-" * 92)
     for d in dbg:
-        print("  #{} {}   expect `{}`".format(d["id"], d["nl"], d["expected"]))
-        print("     reordered : {}".format(d["reordered_nl"]))
-        print("     english   : '{}' [___] '{}'".format(
-            d["english_prefix"], d["english_suffix"]))
-        print("     answer tok: {}   in pool: {}".format(
-            d["expected_token"], d["expected_in_pool"]))
-        for c in d["top"]:
-            print("       {:<14}{:<14}{:>9.4f}".format(
-                c["nl"], repr(c["en"]), c["score"]))
-        print("")
+        tmpl = "{} [{}] {}".format(d["english_prefix"].strip(),
+                                   (d["expected_token"] or "?").strip(),
+                                   d["english_suffix"].strip())
+        print("  {:>3} {:<52} {:<11} {:<11}".format(
+            d["id"], tmpl[:51], d["expected"][:10],
+            d["top"][0]["nl"][:10] if d["top"] else "-"))
     print("")
     if res["syntax"] > res["lexical"]:
         print("  The syntax layer helps. Word order was addressable without")
